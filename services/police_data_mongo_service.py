@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, date
 from uuid import UUID
 from database_manager import DatabaseManager
 from dataclasses import dataclass, asdict
@@ -116,11 +116,23 @@ class UnifiedPoliceData:
     def to_mongo_dict(self) -> Dict[str, Any]:
         """Convert to MongoDB document format"""
         doc = asdict(self)
+        
         # Convert enums to values
         doc['action'] = self.action.value
         doc['state'] = self.state.value
         doc['movement_type'] = self.movement_type.value
         doc['police_type'] = self.police_type.value
+        
+        # Handle datetime objects for MongoDB
+        if isinstance(doc['created_at'], datetime):
+            doc['created_at'] = doc['created_at'].isoformat()
+        if isinstance(doc['updated_at'], datetime):
+            doc['updated_at'] = doc['updated_at'].isoformat()
+        if doc.get('expiration_date') and isinstance(doc['expiration_date'], date):
+            doc['expiration_date'] = doc['expiration_date'].isoformat()
+        if doc.get('last_sent_date') and isinstance(doc['last_sent_date'], datetime):
+            doc['last_sent_date'] = doc['last_sent_date'].isoformat()
+            
         return doc
     
     @classmethod

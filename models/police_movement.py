@@ -176,7 +176,7 @@ class PoliceMovement:
             last_sent_date=row.get("last_sent_date"),
             data=row.get("data", ""),
             reason=row.get("reason", ""),
-            reservation_id=UUID(row["reservation_id"]) if row.get("reservation_id") else None,
+            reservation_id=UUID(row["reservation_id"]) if row.get("reservation_id") and isinstance(row["reservation_id"], str) else row.get("reservation_id"),
             tax_data=tax_data,
             is_sent_manually=row.get("is_sent_manually", False),
         )

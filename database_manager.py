@@ -21,10 +21,21 @@ class DatabaseManager:
         return self._postgres_conn
 
     def connect_mongo(self, host: str = "localhost", port: int = 27017, 
-                     database: str = "legal_dashboard") -> Database:
+                     database: str = "legal_dashboard", username: str = None, 
+                     password: str = None, auth_database: str = "admin") -> Database:
         """Connect to MongoDB database"""
         if self._mongo_client is None:
-            self._mongo_client = MongoClient(host, port)
+            if username and password:
+                # Connect with authentication using authSource
+                self._mongo_client = MongoClient(
+                    host, port, 
+                    username=username, 
+                    password=password,
+                    authSource=auth_database
+                )
+            else:
+                # Connect without authentication
+                self._mongo_client = MongoClient(host, port)
         self._mongo_db = self._mongo_client[database]
         return self._mongo_db
 

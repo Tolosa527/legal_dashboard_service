@@ -147,24 +147,18 @@ class PoliceRegistration:
     created_at: datetime
     updated_at: datetime
     
-    # Core registration information
+    # Core registration information (required fields first)
     status: RegistrationStatus
-    status_details: str = ""
-    
-    # Status tracking for different phases
     status_booking: BookingStatus
     status_check_out: CheckoutStatus
     status_room_change: RoomChangeStatus
-    
-    # Relationships and identifiers
     reservation_id: UUID
-    vr_sheet_number: str = ""
     
-    # Date range
+    # Optional fields with defaults
+    status_details: str = ""
+    vr_sheet_number: str = ""
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    
-    # Police type (from related task)
     police_type: Optional[PoliceType] = None
     
     def __post_init__(self):

@@ -1,0 +1,66 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: legal_dashboard_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: adminpassword
+      MONGO_INITDB_DATABASE: legal_dashboard
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - legal_dashboard_network
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: legal_dashboard_mongo_express
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: adminpassword
+      ME_CONFIG_MONGODB_URL: mongodb://admin:adminpassword@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: express123
+      ME_CONFIG_MONGODB_SERVER: mongodb
+    ports:
+      - "8081:8081"
+    networks:
+      - legal_dashboard_network
+
+  data-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile.sync
+    container_name: legal_dashboard_data_sync
+    restart: "no"  # Run once on startup
+    depends_on:
+      - mongodb
+    environment:
+      POSTGRES_HOST: read-replica-data-analysis.cmam0b4vdydl.eu-central-1.rds.amazonaws.com
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: readonly_user
+      POSTGRES_PASSWORD: pR-0l7chJy5tK1@n.r0_K
+      POSTGRES_DB: production-core
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_DB: legal_dashboard
+      MONGO_USERNAME: admin
+      MONGO_PASSWORD: adminpassword
+      SYNC_HOURS: 24
+    volumes:
+      - .:/app
+    networks:
+      - legal_dashboard_network
+
+volumes:
+  mongodb_data:
+
+networks:
+  legal_dashboard_network:
+    driver: bridge
