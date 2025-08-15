@@ -1,0 +1,69 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Sync Database",
+			"type": "shell",
+			"command": "python sync_database.py",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run Dashboard",
+			"type": "shell",
+			"command": "./run_dashboard.sh",
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Create Demo Data",
+			"type": "shell",
+			"command": "python app/demo.py --create-sample",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Docker: Start Services",
+			"type": "shell",
+			"command": "./docker-manage.sh start",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Docker: Start Demo",
+			"type": "shell",
+			"command": "./docker-manage.sh demo",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Docker: Stop Services",
+			"type": "shell",
+			"command": "./docker-manage.sh stop",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Docker: View Logs",
+			"type": "shell",
+			"command": "./docker-manage.sh logs -f",
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Docker: Service Status",
+			"type": "shell",
+			"command": "./docker-manage.sh status",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

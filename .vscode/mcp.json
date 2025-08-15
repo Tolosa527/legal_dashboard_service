@@ -1,0 +1,23 @@
+{
+    "inputs": [
+      {
+        "type": "promptString",
+        "id": "pg_url",
+        "description": "PostgreSQL URL (e.g. postgresql://user:pass@localhost:5432/mydb)"
+      }
+    ],
+    "servers": {
+        "playwright": {
+            "command": "/home/matias/.nvm/versions/node/v22.18.0/bin/npx",
+            "args": ["-y", "@executeautomation/playwright-mcp-server"]
+        },
+        "postgres": {
+            "command": "/home/matias/.nvm/versions/node/v22.18.0/bin/npx",
+            "args": [
+            "-y",
+            "@modelcontextprotocol/server-postgres",
+            "${input:pg_url}"
+            ]
+        }
+    }
+}
