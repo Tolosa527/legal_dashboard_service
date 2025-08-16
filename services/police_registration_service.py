@@ -109,19 +109,19 @@ class PoliceRegistrationService:
         return [PoliceRegistration.from_db_row(dict(zip(columns, row))) for row in rows]
 
     def get_registrations_by_date_range(self, start_date: date, end_date: date) -> List[PoliceRegistration]:
-        """Get police registrations within date range"""
+        """Get police registrations within date range based on created_at"""
         query = """
         SELECT pr.*, 
                COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type
         FROM police_registrations pr
         LEFT JOIN police_registration_tasks prt ON pr.id = prt.police_registration_id
-        WHERE pr.start_date <= %s AND pr.end_date >= %s
+        WHERE pr.created_at >= %s AND pr.created_at <= %s
         ORDER BY pr.created_at DESC
         """
         
         conn = self.db_manager.postgres
         with conn.cursor() as cur:
-            cur.execute(query, (end_date, start_date))
+            cur.execute(query, (start_date, end_date))
             rows = cur.fetchall()
             columns = [desc[0] for desc in cur.description]
             

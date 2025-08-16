@@ -157,7 +157,7 @@ class UnifiedPoliceData:
             vr_sheet_number=doc.get("vr_sheet_number", ""),
         )
 
-
+@dataclass
 class PoliceDataMongoService:
     """Service for storing unified police data in MongoDB"""
     

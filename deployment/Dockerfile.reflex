@@ -1,0 +1,30 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install Node.js (required for Reflex)
+RUN apt-get update && apt-get install -y \
+    curl \
+    unzip \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Copy the project configuration
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies
+RUN uv sync --frozen --no-dev
+
+# Copy the application code
+COPY . .
+
+# Expose ports for Reflex (3000 for frontend, 8000 for backend)
+EXPOSE 3000 8000
+
+# Run the Reflex application
+CMD ["uv", "run", "reflex", "run", "--env", "dev", "--backend-host", "0.0.0.0", "--frontend-port", "3000", "--backend-port", "8000"]

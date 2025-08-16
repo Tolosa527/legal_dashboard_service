@@ -122,8 +122,8 @@ def sync_police_data():
         # Sync police registrations
         print("📋 Syncing police registrations...")
         registrations = registration_service.get_registrations_by_date_range(
-            cutoff_time.date(),
-            datetime.now().date()
+            cutoff_time,
+            datetime.now()
         )
         
         registration_count = 0

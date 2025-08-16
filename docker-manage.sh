@@ -4,6 +4,9 @@
 
 set -e
 
+# Change to deployment directory
+cd "$(dirname "$0")/deployment"
+
 # Use docker compose (new) instead of docker-compose (old)
 DOCKER_COMPOSE="docker compose"
 
@@ -21,15 +24,56 @@ case "$1" in
         echo "📊 Running data synchronization..."
         $DOCKER_COMPOSE up data-sync
         
+        echo " Starting Reflex application..."
+        $DOCKER_COMPOSE up -d reflex-app
+        
         echo ""
         echo "✅ Legal Dashboard is ready!"
         echo ""
         echo "📋 Service URLs:"
         echo "   🗄️  MongoDB: mongodb://admin:adminpassword@localhost:27017"
         echo "   🌐 Mongo Express: http://localhost:8081 (admin/express123)"
+        echo "   📊 Reflex App: http://localhost:3000"
+        echo "   🔌 API Backend: http://localhost:8000"
         echo ""
         echo "📈 To view logs: ./docker-manage.sh logs"
         echo "🛑 To stop: ./docker-manage.sh stop"
+        ;;
+
+    "demo")
+        echo "🔄 Starting Legal Dashboard with Reflex app (same as start)..."
+        $0 start
+        ;;
+
+    "reflex-start")
+        echo "🚀 Starting only Reflex application..."
+        $DOCKER_COMPOSE up -d reflex-app
+        echo "✅ Reflex app is running at http://localhost:3000"
+        ;;
+
+    "reflex-stop")
+        echo "🛑 Stopping Reflex application..."
+        $DOCKER_COMPOSE stop reflex-app
+        echo "✅ Reflex app stopped"
+        ;;
+
+    "reflex-restart")
+        echo "🔄 Restarting Reflex application..."
+        $DOCKER_COMPOSE restart reflex-app
+        echo "✅ Reflex app restarted"
+        ;;
+
+    "reflex-rebuild")
+        echo "🔨 Rebuilding and starting Reflex application..."
+        $DOCKER_COMPOSE stop reflex-app
+        $DOCKER_COMPOSE build --no-cache reflex-app
+        $DOCKER_COMPOSE up -d reflex-app
+        echo "✅ Reflex app rebuilt and started at http://localhost:3000"
+        ;;
+
+    "reflex-logs")
+        echo "📋 Viewing Reflex application logs..."
+        $DOCKER_COMPOSE logs -f reflex-app
         ;;
         
     "stop")
@@ -74,17 +118,25 @@ case "$1" in
         ;;
         
     *)
-        echo "Usage: $0 {start|stop|restart|sync|logs|status|clean|shell-mongo}"
+        echo "Usage: $0 {start|stop|restart|demo|sync|logs|status|clean|shell-mongo|reflex-start|reflex-stop|reflex-restart|reflex-rebuild|reflex-logs}"
         echo ""
-        echo "Commands:"
+        echo "Main Commands:"
         echo "  start        - Start all services and sync data"
         echo "  stop         - Stop all services"
         echo "  restart      - Restart all services"
+        echo "  demo         - Start all services including Reflex app"
         echo "  sync         - Re-sync police data from external PostgreSQL to MongoDB"
         echo "  logs [service] - View logs (optionally for specific service)"
         echo "  status       - Show service status"
         echo "  clean        - Remove containers and volumes"
         echo "  shell-mongo  - Open MongoDB shell"
+        echo ""
+        echo "Reflex App Commands:"
+        echo "  reflex-start   - Start only the Reflex application"
+        echo "  reflex-stop    - Stop only the Reflex application"
+        echo "  reflex-restart - Restart the Reflex application"
+        echo "  reflex-rebuild - Rebuild and start the Reflex application"
+        echo "  reflex-logs    - View Reflex application logs"
         exit 1
         ;;
 esac

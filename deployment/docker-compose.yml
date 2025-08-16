@@ -11,7 +11,7 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - ./mongo-init:/docker-entrypoint-initdb.d
+      - ../mongo-init:/docker-entrypoint-initdb.d
     networks:
       - legal_dashboard_network
 
@@ -35,8 +35,8 @@ services:
 
   data-sync:
     build:
-      context: .
-      dockerfile: Dockerfile.sync
+      context: ..
+      dockerfile: deployment/Dockerfile.sync
     container_name: legal_dashboard_data_sync
     restart: "no"  # Run once on startup
     depends_on:
@@ -54,7 +54,29 @@ services:
       MONGO_PASSWORD: adminpassword
       SYNC_HOURS: 24
     volumes:
-      - .:/app
+      - ..:/app
+    networks:
+      - legal_dashboard_network
+
+  reflex-app:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.reflex
+    container_name: legal_dashboard_reflex
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_DB: legal_dashboard
+      MONGO_USERNAME: admin
+      MONGO_PASSWORD: adminpassword
+    ports:
+      - "3000:3000"
+      - "8000:8000"
+    volumes:
+      - ..:/app
     networks:
       - legal_dashboard_network
 
