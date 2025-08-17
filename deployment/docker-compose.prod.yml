@@ -1,0 +1,65 @@
+services:
+  mongodb:
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-adminpassword}
+    volumes:
+      # Use persistent volume for production
+      - /data/mongodb:/data/db
+    # Add resource limits for production
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+
+  mongo-express:
+    restart: always
+    environment:
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-express123}
+    # Disable port exposure for production (use nginx proxy)
+    ports: []
+    # Comment out the port mapping below for production
+    # ports:
+    #   - "8081:8081"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  data-sync:
+    restart: "no"  # Only run when explicitly triggered
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  reflex-app:
+    restart: always
+    environment:
+      MONGO_PASSWORD: ${MONGO_ROOT_PASSWORD:-adminpassword}
+      REFLEX_BACKEND_HOST: ${REFLEX_BACKEND_HOST:-0.0.0.0}
+      REFLEX_FRONTEND_PORT: ${REFLEX_FRONTEND_PORT:-3000}
+      REFLEX_BACKEND_PORT: ${REFLEX_BACKEND_PORT:-8000}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    # For production, you might want to disable direct port access
+    # and only allow access through nginx reverse proxy
+    # Uncomment these lines to disable direct access:
+    # ports: []
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '1.5'
+
+# Production network configuration
+networks:
+  legal_dashboard_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
