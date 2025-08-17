@@ -84,7 +84,7 @@ def error_component(error_message: str) -> rx.Component:
     return rx.center(
         rx.callout(
             rx.text(f"Error: {error_message}"),
-            icon="alert-triangle",
+            icon="triangle-alert",
             color_scheme="red",
             size="3",
         ),

@@ -1,7 +1,5 @@
 import reflex as rx
-
-
-import reflex as rx
+from app.states.navigation_state import NavigationState
 
 
 def sidebar_link(text: str, url: str, is_active: bool, icon: str) -> rx.Component:
@@ -87,10 +85,8 @@ def sidebar() -> rx.Component:
         # Navigation section with enhanced styling
         rx.vstack(
             rx.text("Analytics", size="2", weight="bold", color="gray.500", margin_bottom="0.5rem"),
-            sidebar_link("Police Services Report", "#", True, "bar-chart-3"),
-            sidebar_link("Statistics Report", "#", False, "pie-chart"),
-            sidebar_link("Data Insights", "#", False, "trending-up"),
-            sidebar_link("Export Data", "#", False, "download"),
+            sidebar_link("Police Services Report", "/police", NavigationState.is_police_active, "bar-chart-3"),
+            sidebar_link("Statistics Service Report", "/statistics", NavigationState.is_statistics_active, "pie-chart"),
             spacing="1",
             align="start",
             padding="1rem",

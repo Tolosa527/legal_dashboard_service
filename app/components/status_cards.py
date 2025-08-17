@@ -3,7 +3,8 @@ import reflex as rx
 
 def status_card(type_data) -> rx.Component:
     """Individual status card component for police type status."""
-    return rx.card(
+    return rx.link(
+        rx.card(
         rx.vstack(
             # Header with colored indicator bar
             rx.hstack(
@@ -24,7 +25,7 @@ def status_card(type_data) -> rx.Component:
                 rx.hstack(
                     rx.cond(
                         type_data["status"] == "Good",
-                        rx.icon("circle-check", size=28, color="green.600"),
+                        rx.icon("check", size=28, color="green.600"),
                         rx.cond(
                             type_data["status"] == "Warning",
                             rx.icon("triangle-alert", size=28, color="orange.600"),
@@ -175,6 +176,9 @@ def status_card(type_data) -> rx.Component:
             ),
         },
         transition="all 0.2s ease-in-out",
+    ),
+        href=f"/police-type/{type_data['type']}",
+        style={"text_decoration": "none", "color": "inherit"},
     )
 
 

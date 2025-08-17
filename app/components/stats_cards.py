@@ -47,8 +47,8 @@ def stats_cards_section(get_total_records, get_success_rate, get_error_count, ge
     """Stats cards section component."""
     return rx.grid(
         metric_card("database", "Total Records", get_total_records, "blue"),
-        metric_card("check-circle", "Success Rate", get_success_rate, "green"),
-        metric_card("alert-triangle", "Error Count", get_error_count, "red"),
+        metric_card("check", "Success Rate", get_success_rate, "green"),
+        metric_card("triangle-alert", "Error Count", get_error_count, "red"),
         metric_card("layers", "Active Types", get_active_types, "purple"),
         columns="4",
         spacing="4",

@@ -6,10 +6,16 @@ from pymongo.database import Database
 
 
 class DatabaseManager:
-    def __init__(self):
-        self._postgres_conn: Optional[psycopg.Connection] = None
-        self._mongo_client: Optional[MongoClient] = None
-        self._mongo_db: Optional[Database] = None
+    _instance: Optional["DatabaseManager"] = None
+    _mongo_client: Optional[MongoClient] = None
+    _mongo_db: Optional[Database] = None
+    _postgres_conn: Optional[psycopg.Connection] = None
+
+    def __new__(cls):
+        """Singleton pattern for database connections."""
+        if cls._instance is None:
+            cls._instance = super(DatabaseManager, cls).__new__(cls)
+        return cls._instance
 
     def connect_postgres(self, host: str = "localhost", port: int = 5432, 
                         database: str = "legal_dashboard", user: str = "postgres", 
@@ -23,19 +29,29 @@ class DatabaseManager:
     def connect_mongo(self, host: str = "localhost", port: int = 27017, 
                      database: str = "legal_dashboard", username: str = None, 
                      password: str = None, auth_database: str = "admin") -> Database:
-        """Connect to MongoDB database"""
+        """Connect to MongoDB database with connection pooling."""
         if self._mongo_client is None:
             if username and password:
-                # Connect with authentication using authSource
+                # Connect with authentication using authSource and connection pooling
                 self._mongo_client = MongoClient(
                     host, port, 
                     username=username, 
                     password=password,
-                    authSource=auth_database
+                    authSource=auth_database,
+                    maxPoolSize=20,  # Connection pool size
+                    serverSelectionTimeoutMS=5000,  # Timeout for server selection
+                    connectTimeoutMS=10000,  # Connection timeout
+                    maxIdleTimeMS=45000,  # Max idle time for connections
                 )
             else:
                 # Connect without authentication
-                self._mongo_client = MongoClient(host, port)
+                self._mongo_client = MongoClient(
+                    host, port,
+                    maxPoolSize=20,
+                    serverSelectionTimeoutMS=5000,
+                    connectTimeoutMS=10000,
+                    maxIdleTimeMS=45000,
+                )
         self._mongo_db = self._mongo_client[database]
         return self._mongo_db
 
@@ -66,3 +82,10 @@ class DatabaseManager:
     def mongo(self) -> Optional[Database]:
         """Get MongoDB database"""
         return self._mongo_db
+
+    @classmethod
+    def get_instance(cls) -> "DatabaseManager":
+        """Get singleton instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance

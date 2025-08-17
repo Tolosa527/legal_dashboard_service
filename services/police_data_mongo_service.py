@@ -285,33 +285,36 @@ class PoliceDataMongoService:
         return result.deleted_count > 0
     
     def get_statistics(self) -> Dict[str, Any]:
-        """Get statistics about police data"""
+        """Get optimized statistics about police data using aggregation."""
         collection = self._get_collection()
         
+        # Basic counts
         total_count = collection.count_documents({})
         movement_count = collection.count_documents({"source_type": "movement"})
         registration_count = collection.count_documents({"source_type": "registration"})
         
-        # State distribution
+        # Optimized aggregation for state distribution
         state_pipeline = [
             {"$group": {"_id": "$state", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}}
         ]
-        state_stats = list(collection.aggregate(state_pipeline))
+        state_results = list(collection.aggregate(state_pipeline))
+        state_distribution = {item["_id"]: item["count"] for item in state_results}
         
-        # Police type distribution
+        # Optimized aggregation for police type distribution
         type_pipeline = [
             {"$group": {"_id": "$police_type", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}}
         ]
-        type_stats = list(collection.aggregate(type_pipeline))
+        type_results = list(collection.aggregate(type_pipeline))
+        police_type_distribution = {item["_id"]: item["count"] for item in type_results}
         
         return {
             "total_records": total_count,
             "movements": movement_count,
             "registrations": registration_count,
-            "state_distribution": {item["_id"]: item["count"] for item in state_stats},
-            "police_type_distribution": {item["_id"]: item["count"] for item in type_stats},
+            "state_distribution": state_distribution,
+            "police_type_distribution": police_type_distribution,
         }
     
     # Mapping methods
