@@ -3,6 +3,7 @@ import reflex as rx
 from services.police_data_mongo_service import PoliceDataMongoService
 from database_manager import DatabaseManager
 from typing import Dict, Any
+from app.states.success_rate_calculator import calculate_success_rate
 
 
 class PoliceDataState(rx.State):
@@ -22,7 +23,7 @@ class PoliceDataState(rx.State):
     async def fetch_dashboard_stats(self):
         """Fetch only dashboard statistics (much faster than full data)."""
         import time
-        
+
         # Check if cache is still valid
         current_time = time.time()
         if self.stats_cache and (current_time - self.cache_timestamp) < self.CACHE_TIMEOUT:
@@ -69,14 +70,17 @@ class PoliceDataState(rx.State):
         """Get aggregated statistics by police type."""
         # Get aggregated data by police type and state
         collection = service._get_collection()
-        
+        in_progress_states = ["NEW", "IN_PROGRESS", "PROGRESS"]
+        success_states = ["SUCCESS", "CONFIRMED", "COMPLETE"]
+        error_states = ["ERROR", "FAILED", "INVALID"]
         # Aggregation pipeline for police type statistics
         pipeline = [
             {
                 "$group": {
                     "_id": {
                         "police_type": "$police_type",
-                        "state": "$state"
+                        "state": "$state",
+                        "reason": "$reason"
                     },
                     "count": {"$sum": 1}
                 }
@@ -87,6 +91,7 @@ class PoliceDataState(rx.State):
                     "states": {
                         "$push": {
                             "state": "$_id.state",
+                            "reason": "$_id.reason",
                             "count": "$count"
                         }
                     },
@@ -94,25 +99,21 @@ class PoliceDataState(rx.State):
                 }
             }
         ]
-        
         result = list(collection.aggregate(pipeline))
-        
         # Process the aggregated data
         police_type_stats = {}
         for item in result:
             police_type = item["_id"]
             total_records = item["total"]
             states = {state_info["state"]: state_info["count"] for state_info in item["states"]}
-            
-            # Calculate success rate
-            in_progress_states = ["NEW", "IN_PROGRESS", "PROGRESS"]
-            success_states = ["SUCCESS", "CONFIRMED", "COMPLETE"]
-            
-            completed_count = sum(count for state, count in states.items() if state not in in_progress_states)
             success_count = sum(count for state, count in states.items() if state in success_states)
-            
-            success_rate = (success_count / completed_count * 100) if completed_count > 0 else 0
-            
+            success_rate = calculate_success_rate(
+                states=states,
+                reason=item["reason"],
+                in_progress_states=in_progress_states,
+                success_states=success_states,
+                error_states=error_states
+            )
             # Determine status
             if success_rate >= 90:
                 status = "Good"
@@ -126,7 +127,7 @@ class PoliceDataState(rx.State):
                 status = "Error"
                 color = "red"
                 icon = "circle-x"
-            
+
             police_type_stats[police_type] = {
                 "total_records": total_records,
                 "success_rate": round(success_rate, 1),
@@ -136,7 +137,7 @@ class PoliceDataState(rx.State):
                 "success_records": success_count,
                 "states": states
             }
-        
+
         return police_type_stats
 
     @rx.event(background=True)
