@@ -4,6 +4,7 @@ from services.police_data_mongo_service import PoliceDataMongoService
 from database_manager import DatabaseManager
 from typing import Dict, Any
 from app.states.success_rate_calculator import calculate_success_rate
+from settings import settings
 
 
 class PoliceDataState(rx.State):
@@ -31,20 +32,11 @@ class PoliceDataState(rx.State):
                 self.loading = False
             return
         
-        mongo_host = os.getenv('MONGO_HOST', 'localhost')
-        mongo_port = int(os.getenv('MONGO_PORT', '27017'))
-        mongo_db = os.getenv('MONGO_DB', 'legal_dashboard')
-        mongo_username = os.getenv('MONGO_USERNAME')
-        mongo_password = os.getenv('MONGO_PASSWORD')
-
         # Use singleton database manager for connection pooling
         db_manager = DatabaseManager.get_instance()
         db_manager.connect_mongo(
-            host=mongo_host,
-            port=mongo_port,
-            database=mongo_db,
-            username=mongo_username,
-            password=mongo_password
+            connection_string=settings.get_mongo_connection_string(),
+            database=settings.get_mongo_database()
         )
         
         # Create service locally
@@ -73,14 +65,13 @@ class PoliceDataState(rx.State):
         in_progress_states = ["NEW", "IN_PROGRESS", "PROGRESS"]
         success_states = ["SUCCESS", "CONFIRMED", "COMPLETE"]
         error_states = ["ERROR", "FAILED", "INVALID"]
-        # Aggregation pipeline for police type statistics
+        # Simplified aggregation pipeline for police type statistics
         pipeline = [
             {
                 "$group": {
                     "_id": {
                         "police_type": "$police_type",
-                        "state": "$state",
-                        "reason": "$reason"
+                        "state": "$state"
                     },
                     "count": {"$sum": 1}
                 }
@@ -91,7 +82,6 @@ class PoliceDataState(rx.State):
                     "states": {
                         "$push": {
                             "state": "$_id.state",
-                            "reason": "$_id.reason",
                             "count": "$count"
                         }
                     },
@@ -109,7 +99,7 @@ class PoliceDataState(rx.State):
             success_count = sum(count for state, count in states.items() if state in success_states)
             success_rate = calculate_success_rate(
                 states=states,
-                reason=item["reason"],
+                reason="",  # Pass empty reason since we're not grouping by reason at this level
                 in_progress_states=in_progress_states,
                 success_states=success_states,
                 error_states=error_states
@@ -220,7 +210,21 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_service_status(self) -> str:
         """Get service status based on success rate thresholds."""
-        success_rate = self.get_success_rate
+        # Calculate success rate inline instead of calling another @rx.var method
+        if not self.stats_cache or "state_distribution" not in self.stats_cache:
+            return "Error"
+        
+        state_dist = self.stats_cache["state_distribution"]
+        in_progress_states = ["NEW", "IN_PROGRESS", "PROGRESS"]
+        success_states = ["SUCCESS", "CONFIRMED", "COMPLETE"]
+        
+        completed_count = sum(count for state, count in state_dist.items() if state not in in_progress_states)
+        success_count = sum(count for state, count in state_dist.items() if state in success_states)
+        
+        if completed_count == 0:
+            success_rate = 0.0
+        else:
+            success_rate = (success_count / completed_count) * 100
         
         if success_rate >= 90:
             return "Good"

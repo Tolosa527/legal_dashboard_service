@@ -53,6 +53,7 @@ services:
       MONGO_USERNAME: admin
       MONGO_PASSWORD: adminpassword
       SYNC_HOURS: 24
+      ENV: development
     volumes:
       - ..:/app
     networks:
@@ -72,6 +73,7 @@ services:
       MONGO_DB: legal_dashboard
       MONGO_USERNAME: admin
       MONGO_PASSWORD: adminpassword
+      ENV: development
     ports:
       - "3000:3000"
       - "8000:8000"

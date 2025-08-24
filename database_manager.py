@@ -26,33 +26,28 @@ class DatabaseManager:
             self._postgres_conn = psycopg.connect(connstring)
         return self._postgres_conn
 
-    def connect_mongo(self, host: str = "localhost", port: int = 27017, 
-                     database: str = "legal_dashboard", username: str = None, 
-                     password: str = None, auth_database: str = "admin") -> Database:
-        """Connect to MongoDB database with connection pooling."""
+    def connect_mongo(self, connection_string: str, database: str = "legal_dashboard") -> Database:
+        """Connect to MongoDB database using connection string with connection pooling.
+        
+        Args:
+            connection_string (str): MongoDB connection string (e.g., 'mongodb://username:password@host:port/database?authSource=admin')
+            database (str): Database name to connect to
+            
+        Returns:
+            Database: MongoDB database instance
+        """
         if self._mongo_client is None:
-            if username and password:
-                # Connect with authentication using authSource and connection pooling
-                self._mongo_client = MongoClient(
-                    host, port, 
-                    username=username, 
-                    password=password,
-                    authSource=auth_database,
-                    maxPoolSize=20,  # Connection pool size
-                    serverSelectionTimeoutMS=5000,  # Timeout for server selection
-                    connectTimeoutMS=10000,  # Connection timeout
-                    maxIdleTimeMS=45000,  # Max idle time for connections
-                )
-            else:
-                # Connect without authentication
-                self._mongo_client = MongoClient(
-                    host, port,
-                    maxPoolSize=20,
-                    serverSelectionTimeoutMS=5000,
-                    connectTimeoutMS=10000,
-                    maxIdleTimeMS=45000,
-                )
-        self._mongo_db = self._mongo_client[database]
+            # Connect using connection string with connection pooling options
+            self._mongo_client = MongoClient(
+                connection_string,
+                maxPoolSize=20,  # Connection pool size
+                serverSelectionTimeoutMS=5000,  # Timeout for server selection
+                connectTimeoutMS=10000,  # Connection timeout
+                maxIdleTimeMS=45000,  # Max idle time for connections
+            )
+        
+        if self._mongo_client is not None:
+            self._mongo_db = self._mongo_client[database]
         return self._mongo_db
 
     def close_postgres(self):

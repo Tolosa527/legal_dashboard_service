@@ -1,65 +1,82 @@
+version: '3.8'
+
 services:
-  mongodb:
-    restart: always
-    environment:
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-adminpassword}
-    volumes:
-      # Use persistent volume for production
-      - /data/mongodb:/data/db
-    # Add resource limits for production
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
-
-  mongo-express:
-    restart: always
-    environment:
-      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-express123}
-    # Disable port exposure for production (use nginx proxy)
-    ports: []
-    # Comment out the port mapping below for production
-    # ports:
-    #   - "8081:8081"
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-
   data-sync:
-    restart: "no"  # Only run when explicitly triggered
+    image: ${DOCKER_REGISTRY}/${APP_NAME}-sync:${TAG:-latest}
+    container_name: legal_dashboard_data_sync_prod
+    restart: "no"
     environment:
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '0.5'
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      MONGO_URI: ${MONGO_URI}
+      MONGO_DB: ${MONGO_DB}
+      SYNC_HOURS: ${SYNC_HOURS:-24}
+      ENV: production
+    networks:
+      - legal_dashboard_network
 
-  reflex-app:
-    restart: always
+  reflex-backend:
+    image: ${DOCKER_REGISTRY}/${APP_NAME}-backend:${TAG:-latest}
+    container_name: legal_dashboard_backend_prod
+    restart: unless-stopped
     environment:
-      MONGO_PASSWORD: ${MONGO_ROOT_PASSWORD:-adminpassword}
-      REFLEX_BACKEND_HOST: ${REFLEX_BACKEND_HOST:-0.0.0.0}
-      REFLEX_FRONTEND_PORT: ${REFLEX_FRONTEND_PORT:-3000}
-      REFLEX_BACKEND_PORT: ${REFLEX_BACKEND_PORT:-8000}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    # For production, you might want to disable direct port access
-    # and only allow access through nginx reverse proxy
-    # Uncomment these lines to disable direct access:
-    # ports: []
-    deploy:
-      resources:
-        limits:
-          memory: 3G
-          cpus: '1.5'
+      MONGO_URI: ${MONGO_URI}
+      MONGO_DB: ${MONGO_DB}
+      ENV: production
+      API_URL: http://localhost:8000
+    ports:
+      - "8000:8000"
+    networks:
+      - legal_dashboard_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-# Production network configuration
+  reflex-frontend:
+    image: ${DOCKER_REGISTRY}/${APP_NAME}-frontend:${TAG:-latest}
+    container_name: legal_dashboard_frontend_prod
+    restart: unless-stopped
+    depends_on:
+      reflex-backend:
+        condition: service_healthy
+    environment:
+      API_URL: ${API_URL:-http://localhost:8000}
+    networks:
+      - legal_dashboard_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    container_name: legal_dashboard_nginx_prod
+    restart: unless-stopped
+    depends_on:
+      reflex-frontend:
+        condition: service_healthy
+      reflex-backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/legal_dashboard/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /opt/legal_dashboard/ssl:/etc/nginx/ssl:ro
+    networks:
+      - legal_dashboard_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   legal_dashboard_network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16

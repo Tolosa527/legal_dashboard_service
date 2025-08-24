@@ -12,6 +12,7 @@ import time
 from datetime import datetime, timedelta
 from database_manager import DatabaseManager
 from services import PoliceMovementService, PoliceRegistrationService, PoliceDataMongoService
+from settings import settings
 
 
 def wait_for_databases(max_retries=30, retry_delay=2):
@@ -24,20 +25,17 @@ def wait_for_databases(max_retries=30, retry_delay=2):
             
             # Test PostgreSQL connection
             postgres_conn = db_manager.connect_postgres(
-                host=os.getenv('POSTGRES_HOST', 'localhost'),
-                port=int(os.getenv('POSTGRES_PORT', '5432')),
-                database=os.getenv('POSTGRES_DB', 'legal_dashboard'),
-                user=os.getenv('POSTGRES_USER', 'postgres'),
-                password=os.getenv('POSTGRES_PASSWORD', 'postgres123')
+                host=settings.POSTGRES_HOST,
+                port=settings.POSTGRES_PORT,
+                database=settings.POSTGRES_DB,
+                user=settings.POSTGRES_USER,
+                password=settings.POSTGRES_PASSWORD
             )
             
             # Test MongoDB connection
             mongo_db = db_manager.connect_mongo(
-                host=os.getenv('MONGO_HOST', 'localhost'),
-                port=int(os.getenv('MONGO_PORT', '27017')),
-                database=os.getenv('MONGO_DB', 'legal_dashboard'),
-                username=os.getenv('MONGO_USERNAME', 'admin'),
-                password=os.getenv('MONGO_PASSWORD', 'adminpassword')
+                connection_string=settings.get_mongo_connection_string(),
+                database=settings.get_mongo_database()
             )
             
             print("✅ Both databases are ready!")
@@ -70,19 +68,16 @@ def sync_police_data():
         
         # Connect to databases
         postgres_conn = db_manager.connect_postgres(
-            host=os.getenv('POSTGRES_HOST', 'localhost'),
-            port=int(os.getenv('POSTGRES_PORT', '5432')),
-            database=os.getenv('POSTGRES_DB', 'legal_dashboard'),
-            user=os.getenv('POSTGRES_USER', 'postgres'),
-            password=os.getenv('POSTGRES_PASSWORD', 'postgres123')
+            host=settings.POSTGRES_HOST,
+            port=settings.POSTGRES_PORT,
+            database=settings.POSTGRES_DB,
+            user=settings.POSTGRES_USER,
+            password=settings.POSTGRES_PASSWORD
         )
         
         mongo_db = db_manager.connect_mongo(
-            host=os.getenv('MONGO_HOST', 'localhost'),
-            port=int(os.getenv('MONGO_PORT', '27017')),
-            database=os.getenv('MONGO_DB', 'legal_dashboard'),
-            username=os.getenv('MONGO_USERNAME', 'admin'),
-            password=os.getenv('MONGO_PASSWORD', 'adminpassword')
+            connection_string=settings.get_mongo_connection_string(),
+            database=settings.get_mongo_database()
         )
         
         # Initialize services
