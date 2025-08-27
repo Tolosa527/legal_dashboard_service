@@ -1,4 +1,3 @@
-import os
 import reflex as rx
 from services.police_data_mongo_service import PoliceDataMongoService
 from database_manager import DatabaseManager
@@ -16,7 +15,7 @@ class PoliceDataState(rx.State):
     error_message: str = ""
     selected_police_type: str = ""
     cache_timestamp: float = 0
-    
+
     # Cache timeout in seconds (5 minutes)
     CACHE_TIMEOUT: float = 300
 
@@ -31,17 +30,14 @@ class PoliceDataState(rx.State):
             async with self:
                 self.loading = False
             return
-        
+
         # Use singleton database manager for connection pooling
         db_manager = DatabaseManager.get_instance()
         db_manager.connect_mongo(
             connection_string=settings.get_mongo_connection_string(),
             database=settings.get_mongo_database()
         )
-        
-        # Create service locally
         police_data_service = PoliceDataMongoService(db_manager=db_manager)
-        
         # Use context manager to modify state in background task
         async with self:
             try:
@@ -49,10 +45,8 @@ class PoliceDataState(rx.State):
                 stats = police_data_service.get_statistics()
                 self.stats_cache = stats
                 self.cache_timestamp = current_time
-                
                 # Get police type status data
                 self.police_type_data = await self._get_police_type_statistics(police_data_service)
-                
                 self.loading = False
             except Exception as e:
                 self.error_message = f"Failed to load data: {str(e)}"

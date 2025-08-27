@@ -85,10 +85,14 @@ def sync_police_data():
         registration_service = PoliceRegistrationService(db_manager)
         mongo_service = PoliceDataMongoService(db_manager)
         
-        # Clear existing data in MongoDB
-        collection = mongo_service._get_collection()
-        result = collection.delete_many({})
-        print(f"🗑️  Cleared {result.deleted_count} existing records from MongoDB")
+        # Clear existing data in MongoDB (optional for incremental syncs)
+        clear_existing = os.getenv('CLEAR_EXISTING', 'true').lower() == 'true'
+        if clear_existing:
+            collection = mongo_service._get_collection()
+            result = collection.delete_many({})
+            print(f"🗑️  Cleared {result.deleted_count} existing records from MongoDB")
+        else:
+            print("📝 Performing incremental sync (not clearing existing data)")
         
         # Sync police movements
         print("📊 Syncing police movements...")
@@ -102,15 +106,14 @@ def sync_police_data():
         
         for movement in movements:
             try:
-                print(f"🔄 Processing movement {movement.id}...")
                 mongo_service.store_police_movement(movement)
                 movement_count += 1
+                if movement_count % 1000 == 0:
+                    print(f"🔄 Processed {movement_count} movements...")
             except Exception as e:
                 print(f"❌ Error storing movement {movement.id}: {e}")
-                print(f"🔍 Movement details - ID: {type(movement.id)}, reservation_id: {type(movement.reservation_id) if movement.reservation_id else None}")
                 movement_errors += 1
-                # Stop after first error for debugging
-                raise e
+                # Continue processing other records instead of stopping
         
         print(f"✅ Synced {movement_count} police movements ({movement_errors} errors)")
         
@@ -128,9 +131,12 @@ def sync_police_data():
             try:
                 mongo_service.store_police_registration(registration)
                 registration_count += 1
+                if registration_count % 1000 == 0:
+                    print(f"🔄 Processed {registration_count} registrations...")
             except Exception as e:
                 print(f"❌ Error storing registration {registration.id}: {e}")
                 registration_errors += 1
+                # Continue processing other records
         
         print(f"✅ Synced {registration_count} police registrations ({registration_errors} errors)")
         

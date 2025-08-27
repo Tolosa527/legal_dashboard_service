@@ -44,7 +44,7 @@ class UnifiedPoliceType(Enum):
     PORTUGAL_SEF = "PORTUGAL_SEF"
     ITALIA = "ITALIA"
     CZECH_CUP = "CZECH_CUP"
-    
+
     # Police account types
     AVS = "AVS"
     CEV = "CEV"
@@ -55,7 +55,6 @@ class UnifiedPoliceType(Enum):
     ERT = "ERT"
     FAKE = "FAKE"
     FER = "FER"
-    HOS = "HOS"
     HREV = "HREV"
     ISP = "ISP"
     MOS = "MOS"
@@ -198,8 +197,13 @@ class PoliceDataMongoService:
         )
         
         collection = self._get_collection()
-        result = collection.insert_one(unified_data.to_mongo_dict())
-        return str(result.inserted_id)
+        doc = unified_data.to_mongo_dict()
+        result = collection.replace_one(
+            {"id": doc["id"]}, 
+            doc, 
+            upsert=True
+        )
+        return str(result.upserted_id if result.upserted_id else doc["id"])
     
     def store_police_registration(self, registration) -> str:
         """
@@ -207,7 +211,7 @@ class PoliceDataMongoService:
         
         Args:
             registration: PoliceRegistration instance
-            
+
         Returns:
             MongoDB document ID
         """
@@ -228,10 +232,15 @@ class PoliceDataMongoService:
             end_date=registration.end_date,
             vr_sheet_number=registration.vr_sheet_number,
         )
-        
+
         collection = self._get_collection()
-        result = collection.insert_one(unified_data.to_mongo_dict())
-        return str(result.inserted_id)
+        doc = unified_data.to_mongo_dict()
+        result = collection.replace_one(
+            {"id": doc["id"]},
+            doc,
+            upsert=True
+        )
+        return str(result.upserted_id if result.upserted_id else doc["id"])
     
     def get_all_police_data(self, limit: Optional[int] = None) -> List[UnifiedPoliceData]:
         """Get all police data"""
@@ -300,7 +309,7 @@ class PoliceDataMongoService:
         ]
         state_results = list(collection.aggregate(state_pipeline))
         state_distribution = {item["_id"]: item["count"] for item in state_results}
-        
+
         # Optimized aggregation for police type distribution
         type_pipeline = [
             {"$group": {"_id": "$police_type", "count": {"$sum": 1}}},
@@ -308,7 +317,7 @@ class PoliceDataMongoService:
         ]
         type_results = list(collection.aggregate(type_pipeline))
         police_type_distribution = {item["_id"]: item["count"] for item in type_results}
-        
+
         return {
             "total_records": total_count,
             "movements": movement_count,
@@ -316,7 +325,7 @@ class PoliceDataMongoService:
             "state_distribution": state_distribution,
             "police_type_distribution": police_type_distribution,
         }
-    
+
     # Mapping methods
     def _map_movement_action(self, action: str) -> UnifiedPoliceAction:
         """Map movement action to unified action"""
@@ -340,4 +349,9 @@ class PoliceDataMongoService:
     
     def _map_police_type(self, police_type: str) -> UnifiedPoliceType:
         """Map police type to unified police type"""
+        # Handle special cases where movement vendor types appear in registration data
+        if police_type == "HOS":
+            # "HOS" is part of "SPAIN_HOS" movement vendor, map to appropriate type
+            return UnifiedPoliceType.SPAIN_HOS
+        
         return UnifiedPoliceType(police_type)

@@ -91,7 +91,12 @@ case "$1" in
         
     "sync")
         echo "🔄 Re-syncing police data..."
-        $DOCKER_COMPOSE up data-sync
+        # Pass environment variables to the sync container
+        if [ -n "${CLEAR_EXISTING:-}" ]; then
+            $DOCKER_COMPOSE run --rm -e CLEAR_EXISTING="$CLEAR_EXISTING" data-sync
+        else
+            $DOCKER_COMPOSE up data-sync
+        fi
         echo "✅ Data sync completed"
         ;;
         

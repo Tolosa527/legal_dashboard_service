@@ -54,7 +54,7 @@ class PoliceMovementService:
     def get_movements_by_vendor(self, vendor: VendorType) -> List[PoliceMovement]:
         """Get police movements by vendor"""
         query = "SELECT * FROM movements_policemovement WHERE vendor = %s ORDER BY created_at DESC"
-        
+
         conn = self.db_manager.postgres
         with conn.cursor() as cur:
             cur.execute(query, (vendor.value,))

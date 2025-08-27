@@ -120,7 +120,6 @@ class PoliceType(Enum):
     ERT = "ERT"
     FAKE = "FAKE"
     FER = "FER"
-    HOS = "HOS"
     HREV = "HREV"
     ISP = "ISP"
     MOS = "MOS"
@@ -173,8 +172,34 @@ class PoliceRegistration:
         if isinstance(self.status_room_change, str):
             self.status_room_change = RoomChangeStatus(self.status_room_change)
         if isinstance(self.police_type, str):
-            self.police_type = PoliceType(self.police_type)
+            try:
+                self.police_type = PoliceType(self.police_type)
+            except ValueError:
+                # Handle invalid police types gracefully - set to None
+                # This can happen when movement vendor types like "HOS" appear in registration data
+                self.police_type = None
     
+    @classmethod
+    def _safe_police_type(cls, police_type_value: Optional[str]) -> Optional[PoliceType]:
+        """
+        Safely convert string to PoliceType enum, handling invalid values
+        
+        Args:
+            police_type_value: String police type value
+            
+        Returns:
+            PoliceType enum or None if invalid/missing
+        """
+        if not police_type_value:
+            return None
+        
+        try:
+            return PoliceType(police_type_value)
+        except ValueError:
+            # Handle invalid police types gracefully - 
+            # This can happen when movement vendor types like "HOS" appear
+            return None
+
     @classmethod
     def from_db_row(cls, row: Dict[str, Any]) -> "PoliceRegistration":
         """
@@ -199,7 +224,7 @@ class PoliceRegistration:
             vr_sheet_number=row.get("vr_sheet_number", ""),
             start_date=row.get("start_date"),
             end_date=row.get("end_date"),
-            police_type=PoliceType(row["police_type"]) if row.get("police_type") else None,
+            police_type=cls._safe_police_type(row.get("police_type")),
         )
     
     def to_dict(self) -> Dict[str, Any]:
