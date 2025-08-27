@@ -4,6 +4,32 @@ from database_manager import DatabaseManager
 from typing import Dict, Any
 from app.states.success_rate_calculator import calculate_success_rate
 from settings import settings
+from dataclasses import dataclass, field
+
+
+@dataclass
+class PoliceTypeStatusResult:
+    police_type: str
+    total_records: int
+    success_rate: float
+    status: str
+    color: str
+    icon: str
+    success_records: int
+    states: Dict[str, int] = field(default_factory=dict)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "PoliceTypeStatusResult":
+        return cls(
+            police_type=data["police_type"],
+            total_records=data["total_records"],
+            success_rate=data["success_rate"],
+            status=data["status"],
+            color=data["color"],
+            icon=data["icon"],
+            success_records=data["success_records"],
+            states=data.get("states", {}),
+        )
 
 
 class PoliceDataState(rx.State):
@@ -60,7 +86,7 @@ class PoliceDataState(rx.State):
 
     async def _get_police_type_statistics(
         self, service: PoliceDataMongoService
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, PoliceTypeStatusResult]:
         """Get aggregated statistics by police type."""
         # Get aggregated data by police type and state
         collection = service._get_collection()
@@ -117,15 +143,16 @@ class PoliceDataState(rx.State):
                 color = "red"
                 icon = "circle-x"
 
-            police_type_stats[police_type] = {
-                "total_records": total_records,
-                "success_rate": round(success_rate, 1),
-                "status": status,
-                "color": color,
-                "icon": icon,
-                "success_records": success_count,
-                "states": states,
-            }
+            police_type_stats[police_type] = PoliceTypeStatusResult(
+                police_type=police_type,
+                total_records=total_records,
+                success_rate=round(success_rate, 1),
+                status=status,
+                color=color,
+                icon=icon,
+                success_records=success_count,
+                states=states,
+            )
 
         return police_type_stats
 
@@ -281,12 +308,12 @@ class PoliceDataState(rx.State):
             result.append(
                 {
                     "type": police_type,
-                    "status": data["status"],
-                    "color": data["color"],
-                    "icon": data["icon"],
-                    "success_rate": data["success_rate"],
-                    "total_records": data["total_records"],
-                    "success_records": data["success_records"],
+                    "status": data.status,
+                    "color": data.color,
+                    "icon": data.icon,
+                    "success_rate": data.success_rate,
+                    "total_records": data.total_records,
+                    "success_records": data.success_records,
                 }
             )
 
@@ -310,10 +337,10 @@ class PoliceDataState(rx.State):
         data = self.police_type_data[self.selected_police_type]
         return {
             "type": self.selected_police_type,
-            "total_records": data["total_records"],
-            "success_records": data["success_records"],
-            "success_rate": data["success_rate"],
-            "status": data["status"],
+            "total_records": data.total_records,
+            "success_records": data.success_records,
+            "success_rate": data.success_rate,
+            "status": data.status,
         }
 
     @rx.var
