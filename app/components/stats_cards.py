@@ -43,7 +43,9 @@ def metric_card(icon: str, title: str, value, color: str) -> rx.Component:
     )
 
 
-def stats_cards_section(get_total_records, get_success_rate, get_error_count, get_active_types) -> rx.Component:
+def stats_cards_section(
+    get_total_records, get_success_rate, get_error_count, get_active_types
+) -> rx.Component:
     """Stats cards section component."""
     return rx.grid(
         metric_card("database", "Total Records", get_total_records, "blue"),

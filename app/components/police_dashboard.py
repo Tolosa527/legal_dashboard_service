@@ -33,7 +33,9 @@ def police_dashboard_page() -> rx.Component:
                                     PoliceDataState.get_error_count,
                                     PoliceDataState.get_active_types,
                                 ),
-                                status_overview_section(PoliceDataState.get_police_type_status),
+                                status_overview_section(
+                                    PoliceDataState.get_police_type_status
+                                ),
                                 # charts_section(
                                 #     PoliceDataState.get_police_state_chart_data,
                                 #     PoliceDataState.get_police_type_chart_data,
@@ -46,7 +48,6 @@ def police_dashboard_page() -> rx.Component:
                             max_width="1200px",
                             margin_x="auto",
                         ),
-                        
                         width="100%",
                         min_height="100vh",
                         # Enhanced gradient background that flows from header
@@ -56,8 +57,8 @@ def police_dashboard_page() -> rx.Component:
                         style={
                             "background_image": "radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.02) 0%, transparent 50%)"
                         },
-                    )
-                )
+                    ),
+                ),
             ),
             spacing="0",
             width="100%",

@@ -17,22 +17,29 @@ class DatabaseManager:
             cls._instance = super(DatabaseManager, cls).__new__(cls)
         return cls._instance
 
-    def connect_postgres(self, host: str = "localhost", port: int = 5432, 
-                        database: str = "legal_dashboard", user: str = "postgres", 
-                        password: str = "") -> psycopg.Connection:
+    def connect_postgres(
+        self,
+        host: str = "localhost",
+        port: int = 5432,
+        database: str = "legal_dashboard",
+        user: str = "postgres",
+        password: str = "",
+    ) -> psycopg.Connection:
         """Connect to PostgreSQL database"""
         if self._postgres_conn is None or self._postgres_conn.closed:
             connstring = f"host={host} port={port} dbname={database} user={user} password={password}"
             self._postgres_conn = psycopg.connect(connstring)
         return self._postgres_conn
 
-    def connect_mongo(self, connection_string: str, database: str = "legal_dashboard") -> Database:
+    def connect_mongo(
+        self, connection_string: str, database: str = "legal_dashboard"
+    ) -> Database:
         """Connect to MongoDB database using connection string with connection pooling.
-        
+
         Args:
             connection_string (str): MongoDB connection string (e.g., 'mongodb://username:password@host:port/database?authSource=admin')
             database (str): Database name to connect to
-            
+
         Returns:
             Database: MongoDB database instance
         """
@@ -45,7 +52,7 @@ class DatabaseManager:
                 connectTimeoutMS=10000,  # Connection timeout
                 maxIdleTimeMS=45000,  # Max idle time for connections
             )
-        
+
         if self._mongo_client is not None:
             self._mongo_db = self._mongo_client[database]
         return self._mongo_db

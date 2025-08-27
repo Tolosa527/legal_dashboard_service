@@ -1,7 +1,9 @@
 import reflex as rx
 
 
-def pie_chart_card(title: str, icon: str, icon_color: str, chart_data, cell_colors: list) -> rx.Component:
+def pie_chart_card(
+    title: str, icon: str, icon_color: str, chart_data, cell_colors: list
+) -> rx.Component:
     """Reusable pie chart card component."""
     return rx.card(
         rx.vstack(
@@ -39,7 +41,9 @@ def pie_chart_card(title: str, icon: str, icon_color: str, chart_data, cell_colo
     )
 
 
-def charts_section(get_police_state_chart_data, get_police_type_chart_data) -> rx.Component:
+def charts_section(
+    get_police_state_chart_data, get_police_type_chart_data
+) -> rx.Component:
     """Charts section component with state and type distribution."""
     state_colors = [
         "#10B981",  # Green for SUCCESS
@@ -50,7 +54,7 @@ def charts_section(get_police_state_chart_data, get_police_type_chart_data) -> r
         "#6B7280",  # Gray for INVALID
         "#EC4899",  # Pink for other states
     ]
-    
+
     type_colors = [
         "#3B82F6",  # Blue
         "#10B981",  # Green
@@ -63,11 +67,11 @@ def charts_section(get_police_state_chart_data, get_police_type_chart_data) -> r
         "#F97316",  # Orange
         "#6366F1",  # Indigo
     ]
-    
+
     return rx.vstack(
         rx.text(
-            "Data Overview", 
-            size="6", 
+            "Data Overview",
+            size="6",
             weight="bold",
             color="gray.800",
             margin_bottom="1rem",
@@ -78,14 +82,14 @@ def charts_section(get_police_state_chart_data, get_police_type_chart_data) -> r
                 "pie-chart",
                 "blue",
                 get_police_state_chart_data,
-                state_colors
+                state_colors,
             ),
             pie_chart_card(
                 "Police Data by Type",
                 "users",
                 "green",
                 get_police_type_chart_data,
-                type_colors
+                type_colors,
             ),
             columns="2",
             spacing="6",

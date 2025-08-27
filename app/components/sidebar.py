@@ -61,7 +61,9 @@ def sidebar() -> rx.Component:
                     box_shadow="0 2px 8px rgba(59, 130, 246, 0.3)",
                 ),
                 rx.vstack(
-                    rx.text("Legal Dashboard", size="3", weight="bold", color="gray.800"),
+                    rx.text(
+                        "Legal Dashboard", size="3", weight="bold", color="gray.800"
+                    ),
                     rx.text("Command Center", size="1", color="gray.600"),
                     spacing="0",
                     align="start",
@@ -81,18 +83,32 @@ def sidebar() -> rx.Component:
                 "background_image": "radial-gradient(circle at 70% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 50%)"
             },
         ),
-        
         # Navigation section with enhanced styling
         rx.vstack(
-            rx.text("Analytics", size="2", weight="bold", color="gray.500", margin_bottom="0.5rem"),
-            sidebar_link("Police Services Report", "/police", NavigationState.is_police_active, "bar-chart-3"),
-            sidebar_link("Statistics Service Report", "/statistics", NavigationState.is_statistics_active, "pie-chart"),
+            rx.text(
+                "Analytics",
+                size="2",
+                weight="bold",
+                color="gray.500",
+                margin_bottom="0.5rem",
+            ),
+            sidebar_link(
+                "Police Services Report",
+                "/police",
+                NavigationState.is_police_active,
+                "bar-chart-3",
+            ),
+            sidebar_link(
+                "Statistics Service Report",
+                "/statistics",
+                NavigationState.is_statistics_active,
+                "pie-chart",
+            ),
             spacing="1",
             align="start",
             padding="1rem",
             width="100%",
         ),
-        
         # Footer section with enhanced styling
         rx.box(
             rx.vstack(
@@ -120,7 +136,6 @@ def sidebar() -> rx.Component:
             left="1rem",
             right="1rem",
         ),
-        
         width="280px",
         height="100vh",
         # Enhanced gradient background that complements the header

@@ -46,7 +46,6 @@ def dashboard_header() -> rx.Component:
                         spacing="4",
                         align="center",
                     ),
-                    
                     # Status indicators and time
                     rx.vstack(
                         rx.hstack(
@@ -122,7 +121,6 @@ def dashboard_header() -> rx.Component:
                     width="100%",
                     class_name="header-content",
                 ),
-                
                 # Subtitle and description
                 rx.vstack(
                     rx.text(
@@ -181,18 +179,15 @@ def dashboard_header() -> rx.Component:
             margin_x="auto",
             padding_x="2rem",
         ),
-        
         # Enhanced background with multiple layers
         background="linear-gradient(135deg, var(--blue-10) 0%, var(--purple-10) 50%, var(--violet-10) 100%)",
         position="relative",
         width="100%",
         overflow="hidden",
         class_name="header-pattern enhanced-shadow",
-        
         # Box shadow for depth
         box_shadow="0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
         border_bottom="1px solid rgba(255, 255, 255, 0.1)",
-        
         # Subtle background pattern
         style={
             "background_image": "radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.05) 0%, transparent 50%)"
@@ -236,7 +231,7 @@ def compact_header() -> rx.Component:
                         border="1px solid rgba(34, 197, 94, 0.3)",
                     ),
                     rx.text(
-                        datetime.now().strftime('%H:%M'),
+                        datetime.now().strftime("%H:%M"),
                         size="2",
                         color="rgba(255, 255, 255, 0.8)",
                         font_weight="500",

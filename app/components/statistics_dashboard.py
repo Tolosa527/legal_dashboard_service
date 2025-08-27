@@ -73,7 +73,9 @@ def construction_placeholder() -> rx.Component:
             rx.vstack(
                 rx.hstack(
                     rx.icon("check", size=16, color="green.600"),
-                    rx.text("Advanced statistical analysis", size="2", color="gray.600"),
+                    rx.text(
+                        "Advanced statistical analysis", size="2", color="gray.600"
+                    ),
                     spacing="2",
                     align="center",
                 ),
@@ -97,7 +99,9 @@ def construction_placeholder() -> rx.Component:
                 ),
                 rx.hstack(
                     rx.icon("check", size=16, color="green.600"),
-                    rx.text("Export and sharing capabilities", size="2", color="gray.600"),
+                    rx.text(
+                        "Export and sharing capabilities", size="2", color="gray.600"
+                    ),
                     spacing="2",
                     align="center",
                 ),

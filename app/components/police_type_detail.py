@@ -27,7 +27,12 @@ def police_type_detail_header() -> rx.Component:
                         style={"text_decoration": "none"},
                     ),
                     rx.text("/", size="2", color="gray.400"),
-                    rx.text(PoliceDataState.selected_police_type, size="2", color="gray.600", weight="medium"),
+                    rx.text(
+                        PoliceDataState.selected_police_type,
+                        size="2",
+                        color="gray.600",
+                        weight="medium",
+                    ),
                     spacing="2",
                     align="center",
                     margin_bottom="1rem",
@@ -79,9 +84,13 @@ def police_type_overview_card() -> rx.Component:
                 # Total Records
                 rx.box(
                     rx.vstack(
-                        rx.text("Total Records", size="2", color="gray.600", weight="medium"),
                         rx.text(
-                            PoliceDataState.get_police_type_detail_data["total_records"],
+                            "Total Records", size="2", color="gray.600", weight="medium"
+                        ),
+                        rx.text(
+                            PoliceDataState.get_police_type_detail_data[
+                                "total_records"
+                            ],
                             size="6",
                             weight="bold",
                             color="blue.700",
@@ -93,10 +102,14 @@ def police_type_overview_card() -> rx.Component:
                 # Success Rate
                 rx.box(
                     rx.vstack(
-                        rx.text("Success Rate", size="2", color="gray.600", weight="medium"),
+                        rx.text(
+                            "Success Rate", size="2", color="gray.600", weight="medium"
+                        ),
                         rx.hstack(
                             rx.text(
-                                PoliceDataState.get_police_type_detail_data["success_rate"],
+                                PoliceDataState.get_police_type_detail_data[
+                                    "success_rate"
+                                ],
                                 size="6",
                                 weight="bold",
                                 color="green.700",
@@ -118,10 +131,14 @@ def police_type_overview_card() -> rx.Component:
                             size="3",
                             variant="surface",
                             color_scheme=rx.cond(
-                                PoliceDataState.get_police_type_detail_data["status"] == "Good",
+                                PoliceDataState.get_police_type_detail_data["status"]
+                                == "Good",
                                 "green",
                                 rx.cond(
-                                    PoliceDataState.get_police_type_detail_data["status"] == "Warning",
+                                    PoliceDataState.get_police_type_detail_data[
+                                        "status"
+                                    ]
+                                    == "Warning",
                                     "orange",
                                     "red",
                                 ),
@@ -134,9 +151,13 @@ def police_type_overview_card() -> rx.Component:
                 # Success Records
                 rx.box(
                     rx.vstack(
-                        rx.text("Successful", size="2", color="gray.600", weight="medium"),
                         rx.text(
-                            PoliceDataState.get_police_type_detail_data["success_records"],
+                            "Successful", size="2", color="gray.600", weight="medium"
+                        ),
+                        rx.text(
+                            PoliceDataState.get_police_type_detail_data[
+                                "success_records"
+                            ],
                             size="6",
                             weight="bold",
                             color="green.700",

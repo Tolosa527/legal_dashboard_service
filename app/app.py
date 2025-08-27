@@ -5,11 +5,13 @@ from app.components.police_type_detail import police_type_detail_page
 from app.states.police_data_state import PoliceDataState
 from app.states.navigation_state import NavigationState
 
+
 def index() -> rx.Component:
     """Redirect to police dashboard by default."""
     return rx.fragment(
         rx.script("window.location.href = '/police'"),
     )
+
 
 def police_dashboard() -> rx.Component:
     """Police data dashboard page."""
@@ -17,9 +19,10 @@ def police_dashboard() -> rx.Component:
         police_dashboard_page(),
         on_mount=[
             PoliceDataState.fetch_dashboard_stats,
-            NavigationState.set_current_route("/police")
+            NavigationState.set_current_route("/police"),
         ],
     )
+
 
 def statistics_dashboard() -> rx.Component:
     """Statistics dashboard page."""
@@ -28,6 +31,7 @@ def statistics_dashboard() -> rx.Component:
         on_mount=NavigationState.set_current_route("/statistics"),
     )
 
+
 def police_type_detail(police_type: str = "") -> rx.Component:
     """Police type detail page."""
     return rx.box(
@@ -35,11 +39,12 @@ def police_type_detail(police_type: str = "") -> rx.Component:
         on_mount=[
             PoliceDataState.fetch_dashboard_stats,
             PoliceDataState.set_selected_police_type(police_type),
-            NavigationState.set_current_route("/police")
+            NavigationState.set_current_route("/police"),
         ],
         width="100%",
         background="linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
     )
+
 
 app = rx.App(
     stylesheets=[

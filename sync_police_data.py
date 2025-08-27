@@ -11,37 +11,41 @@ import sys
 import time
 from datetime import datetime, timedelta
 from database_manager import DatabaseManager
-from services import PoliceMovementService, PoliceRegistrationService, PoliceDataMongoService
+from services import (
+    PoliceMovementService,
+    PoliceRegistrationService,
+    PoliceDataMongoService,
+)
 from settings import settings
 
 
 def wait_for_databases(max_retries=30, retry_delay=2):
     """Wait for databases to be ready"""
     print("Waiting for databases to be ready...")
-    
+
     for attempt in range(max_retries):
         try:
             db_manager = DatabaseManager()
-            
+
             # Test PostgreSQL connection
             postgres_conn = db_manager.connect_postgres(
                 host=settings.POSTGRES_HOST,
                 port=settings.POSTGRES_PORT,
                 database=settings.POSTGRES_DB,
                 user=settings.POSTGRES_USER,
-                password=settings.POSTGRES_PASSWORD
+                password=settings.POSTGRES_PASSWORD,
             )
-            
+
             # Test MongoDB connection
             mongo_db = db_manager.connect_mongo(
                 connection_string=settings.get_mongo_connection_string(),
-                database=settings.get_mongo_database()
+                database=settings.get_mongo_database(),
             )
-            
+
             print("✅ Both databases are ready!")
             db_manager.close_all()
             return True
-            
+
         except Exception as e:
             print(f"Attempt {attempt + 1}/{max_retries}: Databases not ready yet - {e}")
             if attempt < max_retries - 1:
@@ -49,7 +53,7 @@ def wait_for_databases(max_retries=30, retry_delay=2):
             else:
                 print("❌ Failed to connect to databases after all retries")
                 return False
-    
+
     return False
 
 
@@ -57,53 +61,52 @@ def sync_police_data():
     """Synchronize police data from PostgreSQL to MongoDB"""
     try:
         # Get sync timeframe from environment
-        sync_hours = int(os.getenv('SYNC_HOURS', '24'))
+        sync_hours = int(os.getenv("SYNC_HOURS", "24"))
         cutoff_time = datetime.now() - timedelta(hours=sync_hours)
-        
+
         print(f"🔄 Starting data sync for last {sync_hours} hours...")
         print(f"📅 Cutoff time: {cutoff_time}")
-        
+
         # Initialize database manager
         db_manager = DatabaseManager()
-        
+
         # Connect to databases
         postgres_conn = db_manager.connect_postgres(
             host=settings.POSTGRES_HOST,
             port=settings.POSTGRES_PORT,
             database=settings.POSTGRES_DB,
             user=settings.POSTGRES_USER,
-            password=settings.POSTGRES_PASSWORD
+            password=settings.POSTGRES_PASSWORD,
         )
-        
+
         mongo_db = db_manager.connect_mongo(
             connection_string=settings.get_mongo_connection_string(),
-            database=settings.get_mongo_database()
+            database=settings.get_mongo_database(),
         )
-        
+
         # Initialize services
         movement_service = PoliceMovementService(db_manager)
         registration_service = PoliceRegistrationService(db_manager)
         mongo_service = PoliceDataMongoService(db_manager)
-        
+
         # Clear existing data in MongoDB (optional for incremental syncs)
-        clear_existing = os.getenv('CLEAR_EXISTING', 'true').lower() == 'true'
+        clear_existing = os.getenv("CLEAR_EXISTING", "true").lower() == "true"
         if clear_existing:
             collection = mongo_service._get_collection()
             result = collection.delete_many({})
             print(f"🗑️  Cleared {result.deleted_count} existing records from MongoDB")
         else:
             print("📝 Performing incremental sync (not clearing existing data)")
-        
+
         # Sync police movements
         print("📊 Syncing police movements...")
         movements = movement_service.get_movements_by_date_range(
-            cutoff_time.date(), 
-            datetime.now().date()
+            cutoff_time.date(), datetime.now().date()
         )
-        
+
         movement_count = 0
         movement_errors = 0
-        
+
         for movement in movements:
             try:
                 mongo_service.store_police_movement(movement)
@@ -114,19 +117,18 @@ def sync_police_data():
                 print(f"❌ Error storing movement {movement.id}: {e}")
                 movement_errors += 1
                 # Continue processing other records instead of stopping
-        
+
         print(f"✅ Synced {movement_count} police movements ({movement_errors} errors)")
-        
+
         # Sync police registrations
         print("📋 Syncing police registrations...")
         registrations = registration_service.get_registrations_by_date_range(
-            cutoff_time,
-            datetime.now()
+            cutoff_time, datetime.now()
         )
-        
+
         registration_count = 0
         registration_errors = 0
-        
+
         for registration in registrations:
             try:
                 mongo_service.store_police_registration(registration)
@@ -137,9 +139,11 @@ def sync_police_data():
                 print(f"❌ Error storing registration {registration.id}: {e}")
                 registration_errors += 1
                 # Continue processing other records
-        
-        print(f"✅ Synced {registration_count} police registrations ({registration_errors} errors)")
-        
+
+        print(
+            f"✅ Synced {registration_count} police registrations ({registration_errors} errors)"
+        )
+
         # Display statistics
         print("\n📈 Sync Summary:")
         stats = mongo_service.get_statistics()
@@ -148,15 +152,17 @@ def sync_police_data():
         print(f"   Registrations: {stats['registrations']}")
         print(f"   State distribution: {stats['state_distribution']}")
         print(f"   Police type distribution: {stats['police_type_distribution']}")
-        
+
         print(f"\n🎉 Data sync completed successfully!")
-        print(f"🌐 MongoDB accessible at: mongodb://admin:adminpassword@localhost:27017")
+        print(
+            f"🌐 MongoDB accessible at: mongodb://admin:adminpassword@localhost:27017"
+        )
         print(f"🖥️  Mongo Express UI: http://localhost:8081 (admin/express123)")
-        
+
     except Exception as e:
         print(f"💥 Error during sync: {e}")
         sys.exit(1)
-    
+
     finally:
         try:
             db_manager.close_all()
@@ -168,16 +174,16 @@ def sync_police_data():
 def main():
     """Main function"""
     print("🚀 Legal Dashboard Data Sync Starting...")
-    
+
     # Wait for databases to be ready
     if not wait_for_databases():
         print("💥 Failed to connect to databases. Exiting.")
         sys.exit(1)
-    
+
     # Additional delay to ensure databases are fully ready
     print("⏳ Waiting additional 5 seconds for database initialization...")
     time.sleep(5)
-    
+
     # Sync data
     sync_police_data()
 
