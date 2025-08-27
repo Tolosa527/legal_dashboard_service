@@ -81,24 +81,6 @@ def police_type_overview_card() -> rx.Component:
             ),
             rx.divider(),
             rx.grid(
-                # Total Records
-                rx.box(
-                    rx.vstack(
-                        rx.text(
-                            "Total Records", size="2", color="gray.600", weight="medium"
-                        ),
-                        rx.text(
-                            PoliceDataState.get_police_type_detail_data[
-                                "total_records"
-                            ],
-                            size="6",
-                            weight="bold",
-                            color="blue.700",
-                        ),
-                        spacing="1",
-                        align="center",
-                    ),
-                ),
                 # Success Rate
                 rx.box(
                     rx.vstack(
@@ -166,7 +148,7 @@ def police_type_overview_card() -> rx.Component:
                         align="center",
                     ),
                 ),
-                columns="4",
+                columns="3",
                 spacing="6",
                 width="100%",
             ),

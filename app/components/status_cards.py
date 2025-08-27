@@ -109,30 +109,7 @@ def status_card(type_data) -> rx.Component:
                         align="center",
                         width="100%",
                     ),
-                    # Records row
-                    rx.hstack(
-                        rx.text(
-                            "Records",
-                            size="1",
-                            color="gray.600",
-                            weight="medium",
-                        ),
-                        rx.text(
-                            rx.text(
-                                type_data["success_records"],
-                                " / ",
-                                type_data["total_records"],
-                            ),
-                            size="1",
-                            color="gray.700",
-                            weight="medium",
-                        ),
-                        justify="between",
-                        align="center",
-                        width="100%",
-                    ),
-                    spacing="2",
-                    width="100%",
+                    # ...removed Records row...
                 ),
                 spacing="3",
                 align="start",

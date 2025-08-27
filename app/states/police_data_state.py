@@ -41,6 +41,18 @@ class PoliceTypeStatusResult:
             states=data.get("states", {}),
         )
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "police_type": self.police_type,
+            "total_records": self.total_records,
+            "success_rate": self.success_rate,
+            "status": self.status,
+            "color": self.color,
+            "icon": self.icon,
+            "success_records": self.success_records,
+            "states": self.states,
+        }
+
 
 class PoliceDataState(rx.State):
     """State to manage police data."""
@@ -100,44 +112,48 @@ class PoliceDataState(rx.State):
         """Get aggregated statistics by police type."""
         # Get aggregated data by police type and state
         collection = service._get_collection()
-        in_progress_states = IN_PROGRESS_STATES
         success_states = SUCCESS_STATES
         error_states = ERROR_STATES
         # Simplified aggregation pipeline for police type statistics
         pipeline = [
             {
                 "$group": {
-                    "_id": {"police_type": "$police_type", "state": "$state"},
-                    "count": {"$sum": 1},
+                    "_id": "$police_type",
+                    "states": {"$push": {"state": "$state", "count": 1}},
+                    "total": {"$sum": 1},
+                    "docs": {
+                        "$push": {
+                            "state": "$state",
+                            "reason": "$reason"
+                        }
+                    },
                 }
-            },
-            {
-                "$group": {
-                    "_id": "$_id.police_type",
-                    "states": {"$push": {"state": "$_id.state", "count": "$count"}},
-                    "total": {"$sum": "$count"},
-                }
-            },
+            }
         ]
+        from collections import Counter
         result = list(collection.aggregate(pipeline))
         # Process the aggregated data
         police_type_stats = {}
         for item in result:
             police_type = item["_id"]
             total_records = item["total"]
-            states = {
-                state_info["state"]: state_info["count"]
-                for state_info in item["states"]
-            }
+            # Aggregate state counts properly
+            state_counter = Counter()
+            for state_info in item["states"]:
+                state = state_info["state"]
+                count = state_info["count"]
+                state_counter[state] += count
+            states = dict(state_counter)
             success_count = sum(
-                count for state, count in states.items() if state in success_states
+                count for state, count in states.items()
+                if state in success_states
             )
             success_rate = calculate_success_rate(
                 states=states,
-                reason="",  # Pass empty reason since we're not grouping by reason at this level
-                in_progress_states=in_progress_states,
                 success_states=success_states,
                 error_states=error_states,
+                docs=item.get("docs", []),
+                police_type=police_type,
             )
             # Determine status
             if success_rate >= SUCCESS_RATE_THRESHOLDS.good:
@@ -168,8 +184,10 @@ class PoliceDataState(rx.State):
 
     @rx.event(background=True)
     async def fetch_police_data(self):
-        """Legacy method - now just calls fetch_dashboard_stats for compatibility."""
-        return PoliceDataState.fetch_dashboard_stats
+        """
+        Legacy method - now just calls fetch_dashboard_stats for compatibility.
+        """
+        yield PoliceDataState.fetch_dashboard_stats
 
     @rx.event
     def set_selected_police_type(self, police_type: str):
@@ -184,17 +202,26 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_police_state_chart_data(self) -> list[dict]:
         """Get police data aggregated by state for pie chart."""
-        if not self.stats_cache or "state_distribution" not in self.stats_cache:
+        if (
+            not self.stats_cache or
+            "state_distribution" not in self.stats_cache
+        ):
             return []
 
         # Convert state distribution to chart format
         state_dist = self.stats_cache["state_distribution"]
-        return [{"name": state, "value": count} for state, count in state_dist.items()]
+        return [
+            {"name": state, "value": count}
+            for state, count in state_dist.items()
+        ]
 
     @rx.var
     def get_police_type_chart_data(self) -> list[dict]:
         """Get police data aggregated by police type for pie chart."""
-        if not self.stats_cache or "police_type_distribution" not in self.stats_cache:
+        if (
+            not self.stats_cache or
+            "police_type_distribution" not in self.stats_cache
+        ):
             return []
 
         # Convert type distribution to chart format
@@ -212,7 +239,10 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_success_rate(self) -> float:
         """Get success rate percentage."""
-        if not self.stats_cache or "state_distribution" not in self.stats_cache:
+        if (
+            not self.stats_cache or
+            "state_distribution" not in self.stats_cache
+        ):
             return 0.0
 
         state_dist = self.stats_cache["state_distribution"]
@@ -228,7 +258,8 @@ class PoliceDataState(rx.State):
             if state not in in_progress_states
         )
         success_count = sum(
-            count for state, count in state_dist.items() if state in success_states
+            count for state, count in state_dist.items()
+            if state in success_states
         )
 
         if completed_count == 0:
@@ -239,7 +270,10 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_error_count(self) -> int:
         """Get count of error records."""
-        if not self.stats_cache or "state_distribution" not in self.stats_cache:
+        if (
+            not self.stats_cache or
+            "state_distribution" not in self.stats_cache
+        ):
             return 0
 
         return self.stats_cache["state_distribution"].get("ERROR", 0)
@@ -247,7 +281,10 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_active_types(self) -> int:
         """Get number of different police types."""
-        if not self.stats_cache or "police_type_distribution" not in self.stats_cache:
+        if (
+            not self.stats_cache or
+            "police_type_distribution" not in self.stats_cache
+        ):
             return 0
 
         return len(self.stats_cache["police_type_distribution"])
@@ -255,8 +292,11 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_service_status(self) -> str:
         """Get service status based on success rate thresholds."""
-        # Calculate success rate inline instead of calling another @rx.var method
-        if not self.stats_cache or "state_distribution" not in self.stats_cache:
+    # Calculate success rate inline instead of calling another @rx.var method
+        if (
+            not self.stats_cache or
+            "state_distribution" not in self.stats_cache
+        ):
             return "Error"
 
         state_dist = self.stats_cache["state_distribution"]
@@ -269,7 +309,8 @@ class PoliceDataState(rx.State):
             if state not in in_progress_states
         )
         success_count = sum(
-            count for state, count in state_dist.items() if state in success_states
+            count for state, count in state_dist.items()
+            if state in success_states
         )
 
         if completed_count == 0:
@@ -315,15 +356,18 @@ class PoliceDataState(rx.State):
         # Convert police type data to list format expected by UI
         result = []
         for police_type, data in self.police_type_data.items():
+            # Ensure data is a PoliceTypeStatusResult instance
+            if isinstance(data, dict):
+                data = PoliceTypeStatusResult.from_dict(data)
             result.append(
                 {
                     "type": police_type,
-                    "status": data.status,
-                    "color": data.color,
-                    "icon": data.icon,
-                    "success_rate": data.success_rate,
-                    "total_records": data.total_records,
-                    "success_records": data.success_records,
+                    "status": getattr(data, "status", "Unknown"),
+                    "color": getattr(data, "color", "grey"),
+                    "icon": getattr(data, "icon", ""),
+                    "success_rate": getattr(data, "success_rate", 0.0),
+                    "total_records": getattr(data, "total_records", 0),
+                    "success_records": getattr(data, "success_records", 0),
                 }
             )
 
@@ -355,7 +399,10 @@ class PoliceDataState(rx.State):
 
     @rx.var
     def get_police_type_recent_records(self) -> list[dict]:
-        """Get recent records for the selected police type - now returns empty for performance."""
+        """
+        Get recent records for the selected police type - now returns empty for
+        performance.
+        """
         # For performance, we no longer load individual records
         # This could be implemented as a separate on-demand fetch if needed
         return []

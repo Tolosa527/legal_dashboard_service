@@ -18,13 +18,15 @@ class PoliceRegistrationService:
     def get_all_registrations(
         self, limit: Optional[int] = None
     ) -> List[PoliceRegistration]:
-        """Get all police registrations"""
+        """Get all police registrations (from police_guest_registrations)"""
         query = """
-        SELECT pr.*, 
-               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type
-        FROM police_registrations pr
+        SELECT pgr.*, 
+               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type,
+               pr.reservation_id
+        FROM police_guest_registrations pgr
+        JOIN police_registrations pr ON pr.id = pgr.police_registration_id
         LEFT JOIN police_registration_tasks prt ON pr.id = prt.police_registration_id
-        ORDER BY pr.created_at DESC
+        ORDER BY prt.created_at DESC
         """
         if limit:
             query += f" LIMIT {limit}"
@@ -40,11 +42,13 @@ class PoliceRegistrationService:
     def get_registration_by_id(
         self, registration_id: UUID
     ) -> Optional[PoliceRegistration]:
-        """Get police registration by ID"""
+        """Get police registration by ID (from police_guest_registrations)"""
         query = """
-        SELECT pr.*, 
-               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type
-        FROM police_registrations pr
+        SELECT pgr.*, 
+               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type,
+               pr.reservation_id
+        FROM police_guest_registrations pgr
+        JOIN police_registrations pr ON pr.id = pgr.police_registration_id
         LEFT JOIN police_registration_tasks prt ON pr.id = prt.police_registration_id
         WHERE pr.id = %s
         """
@@ -62,14 +66,16 @@ class PoliceRegistrationService:
     def get_registrations_by_status(
         self, status: RegistrationStatus
     ) -> List[PoliceRegistration]:
-        """Get police registrations by status"""
+        """Get police registrations by status (from police_guest_registrations)"""
         query = """
-        SELECT pr.*, 
-               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type
-        FROM police_registrations pr
+        SELECT pgr.*, 
+               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type,
+               pr.reservation_id
+        FROM police_guest_registrations pgr
+        JOIN police_registrations pr ON pr.id = pgr.police_registration_id
         LEFT JOIN police_registration_tasks prt ON pr.id = prt.police_registration_id
         WHERE pr.status = %s 
-        ORDER BY pr.created_at DESC
+        ORDER BY prt.created_at DESC
         """
 
         conn = self.db_manager.postgres
@@ -83,14 +89,16 @@ class PoliceRegistrationService:
     def get_registrations_by_reservation(
         self, reservation_id: UUID
     ) -> List[PoliceRegistration]:
-        """Get police registrations by reservation ID"""
+        """Get police registrations by reservation ID (from police_guest_registrations)"""
         query = """
-        SELECT pr.*, 
-               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type
-        FROM police_registrations pr
+        SELECT pgr.*, 
+               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type,
+               pr.reservation_id
+        FROM police_guest_registrations pgr
+        JOIN police_registrations pr ON pr.id = pgr.police_registration_id
         LEFT JOIN police_registration_tasks prt ON pr.id = prt.police_registration_id
         WHERE pr.reservation_id = %s 
-        ORDER BY pr.created_at DESC
+        ORDER BY prt.created_at DESC
         """
 
         conn = self.db_manager.postgres
@@ -102,14 +110,16 @@ class PoliceRegistrationService:
         return [PoliceRegistration.from_db_row(dict(zip(columns, row))) for row in rows]
 
     def get_current_registrations(self) -> List[PoliceRegistration]:
-        """Get current/active police registrations"""
+        """Get current/active police registrations (from police_guest_registrations)"""
         query = """
-        SELECT pr.*, 
-               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type
-        FROM police_registrations pr
+        SELECT pgr.*, 
+               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type,
+               pr.reservation_id
+        FROM police_guest_registrations pgr
+        JOIN police_registrations pr ON pr.id = pgr.police_registration_id
         LEFT JOIN police_registration_tasks prt ON pr.id = prt.police_registration_id
         WHERE pr.start_date <= CURRENT_DATE AND pr.end_date >= CURRENT_DATE
-        ORDER BY pr.created_at DESC
+        ORDER BY prt.created_at DESC
         """
 
         conn = self.db_manager.postgres
@@ -125,12 +135,14 @@ class PoliceRegistrationService:
     ) -> List[PoliceRegistration]:
         """Get police registrations within date range based on created_at"""
         query = """
-        SELECT pr.*, 
-               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type
+        SELECT pgr.*,
+               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type,
+               pr.reservation_id
         FROM police_registrations pr
+        JOIN police_guest_registrations pgr ON pr.id = pgr.police_registration_id 
         LEFT JOIN police_registration_tasks prt ON pr.id = prt.police_registration_id
-        WHERE pr.created_at >= %s AND pr.created_at <= %s
-        ORDER BY pr.created_at DESC
+        WHERE prt.created_at >= %s AND prt.created_at <= %s
+        ORDER BY prt.created_at desc
         """
 
         conn = self.db_manager.postgres
@@ -144,14 +156,16 @@ class PoliceRegistrationService:
     def get_registrations_by_police_type(
         self, police_type: PoliceType
     ) -> List[PoliceRegistration]:
-        """Get police registrations by police type"""
+        """Get police registrations by police type (from police_guest_registrations)"""
         query = """
-        SELECT pr.*, 
-               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type
-        FROM police_registrations pr
+        SELECT pgr.*, 
+               COALESCE(prt.task_data->'housing'->'police_account'->>'type', NULL) as police_type,
+               pr.reservation_id
+        FROM police_guest_registrations pgr
+        JOIN police_registrations pr ON pr.id = pgr.police_registration_id
         LEFT JOIN police_registration_tasks prt ON pr.id = prt.police_registration_id
         WHERE prt.task_data->'housing'->'police_account'->>'type' = %s
-        ORDER BY pr.created_at DESC
+        ORDER BY prt.created_at DESC
         """
 
         conn = self.db_manager.postgres

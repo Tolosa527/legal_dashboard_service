@@ -22,6 +22,9 @@ class UnifiedPoliceState(Enum):
     NOT_APPLY = "NOT_APPLY"
     SCHEDULED = "SCHEDULED"
     SENT_TO_CANCEL = "SENT_TO_CANCEL"
+    NO_LOGIN_CRED = "NO_LOGIN_CRED"
+    RESTART = "RESTART"
+    NOT_USED = "NOT_USED"
 
 
 class UnifiedPoliceAction(Enum):

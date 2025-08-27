@@ -22,16 +22,19 @@ class RegistrationStatus(Enum):
     SCHEDULED = "SCHEDULED"
     CANCELED = "CANCELED"
     SENT_TO_CANCEL = "SENT_TO_CANCEL"
+    NO_LOGIN_CRED = "NO_LOGIN_CRED"
+    NOT_USED = "NOT_USED"
+    RESTART = "RESTART"
 
     @classmethod
     def success_states(cls) -> list["RegistrationStatus"]:
         """Return states considered successful"""
-        return [cls.COMPLETE]
+        return [cls.COMPLETE, cls.NOT_USED]
 
     @classmethod
     def failed_states(cls) -> list["RegistrationStatus"]:
         """Return states considered failed"""
-        return [cls.ERROR]
+        return [cls.ERROR, cls.NO_LOGIN_CRED]
 
     @classmethod
     def pending_states(cls) -> list["RegistrationStatus"]:
@@ -49,6 +52,18 @@ class RegistrationStatus(Enum):
     def is_pending(self) -> bool:
         """Check if this status represents pending/in progress"""
         return self in self.pending_states()
+
+    def is_no_login_cred(self) -> bool:
+        """Check if this status represents no login credential"""
+        return self == self.NO_LOGIN_CRED
+
+    def is_not_used(self) -> bool:
+        """Check if this status represents not used"""
+        return self == self.NOT_USED
+
+    def is_restart(self) -> bool:
+        """Check if this status represents restart"""
+        return self == self.RESTART
 
 
 class BookingStatus(Enum):
@@ -78,6 +93,7 @@ class CheckoutStatus(Enum):
     COMPLETE = "COMPLETE"
     ERROR = "ERROR"
     SENT_TO_CANCEL = "SENT_TO_CANCEL"
+    NOT_USED = "NOT_USED"
 
     def is_success(self) -> bool:
         """Check if this checkout status represents success"""
@@ -90,6 +106,10 @@ class CheckoutStatus(Enum):
     def is_pending(self) -> bool:
         """Check if this checkout status represents pending"""
         return self == self.NEW
+
+    def is_not_used(self) -> bool:
+        """Check if this checkout status represents not used"""
+        return self == self.NOT_USED
 
 
 class RoomChangeStatus(Enum):
