@@ -5,6 +5,16 @@ from typing import Dict, Any
 from app.states.success_rate_calculator import calculate_success_rate
 from settings import settings
 from dataclasses import dataclass, field
+from app.states.config import (
+    IN_PROGRESS_STATES,
+    SUCCESS_STATES,
+    ERROR_STATES,
+    SUCCESS_RATE_THRESHOLDS,
+    STATUS_LABELS,
+    STATUS_COLORS,
+    STATUS_ICONS,
+    CACHE_TIMEOUT,
+)
 
 
 @dataclass
@@ -43,8 +53,8 @@ class PoliceDataState(rx.State):
     selected_police_type: str = ""
     cache_timestamp: float = 0
 
-    # Cache timeout in seconds (5 minutes)
-    CACHE_TIMEOUT: float = 300
+    # Cache timeout in seconds (from config)
+    CACHE_TIMEOUT: float = CACHE_TIMEOUT
 
     @rx.event(background=True)
     async def fetch_dashboard_stats(self):
@@ -90,9 +100,9 @@ class PoliceDataState(rx.State):
         """Get aggregated statistics by police type."""
         # Get aggregated data by police type and state
         collection = service._get_collection()
-        in_progress_states = ["NEW", "IN_PROGRESS", "PROGRESS"]
-        success_states = ["SUCCESS", "CONFIRMED", "COMPLETE"]
-        error_states = ["ERROR", "FAILED", "INVALID"]
+        in_progress_states = IN_PROGRESS_STATES
+        success_states = SUCCESS_STATES
+        error_states = ERROR_STATES
         # Simplified aggregation pipeline for police type statistics
         pipeline = [
             {
@@ -130,18 +140,18 @@ class PoliceDataState(rx.State):
                 error_states=error_states,
             )
             # Determine status
-            if success_rate >= 90:
-                status = "Good"
-                color = "green"
-                icon = "check"
-            elif success_rate >= 70:
-                status = "Warning"
-                color = "orange"
-                icon = "triangle-alert"
+            if success_rate >= SUCCESS_RATE_THRESHOLDS.good:
+                status = STATUS_LABELS.good
+                color = STATUS_COLORS.good
+                icon = STATUS_ICONS.good
+            elif success_rate >= SUCCESS_RATE_THRESHOLDS.warning:
+                status = STATUS_LABELS.warning
+                color = STATUS_COLORS.warning
+                icon = STATUS_ICONS.warning
             else:
-                status = "Error"
-                color = "red"
-                icon = "circle-x"
+                status = STATUS_LABELS.error
+                color = STATUS_COLORS.error
+                icon = STATUS_ICONS.error
 
             police_type_stats[police_type] = PoliceTypeStatusResult(
                 police_type=police_type,
@@ -208,8 +218,8 @@ class PoliceDataState(rx.State):
         state_dist = self.stats_cache["state_distribution"]
 
         # Define states that should be excluded from success rate calculation
-        in_progress_states = ["NEW", "IN_PROGRESS", "PROGRESS"]
-        success_states = ["SUCCESS", "CONFIRMED", "COMPLETE"]
+        in_progress_states = IN_PROGRESS_STATES
+        success_states = SUCCESS_STATES
 
         # Calculate totals
         completed_count = sum(
@@ -267,34 +277,34 @@ class PoliceDataState(rx.State):
         else:
             success_rate = (success_count / completed_count) * 100
 
-        if success_rate >= 90:
-            return "Good"
-        elif success_rate >= 70:
-            return "Warning"
+        if success_rate >= SUCCESS_RATE_THRESHOLDS.good:
+            return STATUS_LABELS.good
+        elif success_rate >= SUCCESS_RATE_THRESHOLDS.warning:
+            return STATUS_LABELS.warning
         else:
-            return "Error"
+            return STATUS_LABELS.error
 
     @rx.var
     def get_service_status_color(self) -> str:
         """Get service status color."""
         status = self.get_service_status
-        if status == "Good":
-            return "green"
-        elif status == "Warning":
-            return "orange"
+        if status == STATUS_LABELS.good:
+            return STATUS_COLORS.good
+        elif status == STATUS_LABELS.warning:
+            return STATUS_COLORS.warning
         else:
-            return "red"
+            return STATUS_COLORS.error
 
     @rx.var
     def get_service_status_icon(self) -> str:
         """Get service status icon."""
         status = self.get_service_status
-        if status == "Good":
-            return "check"
-        elif status == "Warning":
-            return "triangle-alert"
+        if status == STATUS_LABELS.good:
+            return STATUS_ICONS.good
+        elif status == STATUS_LABELS.warning:
+            return STATUS_ICONS.warning
         else:
-            return "circle-x"
+            return STATUS_ICONS.error
 
     @rx.var
     def get_police_type_status(self) -> list[dict]:
