@@ -59,13 +59,13 @@ class DatabaseManager:
 
     def close_postgres(self):
         """Close PostgreSQL connection"""
-        if self._postgres_conn and not self._postgres_conn.closed:
+        if self._postgres_conn is not None and not self._postgres_conn.closed:
             self._postgres_conn.close()
             self._postgres_conn = None
 
     def close_mongo(self):
         """Close MongoDB connection"""
-        if self._mongo_client:
+        if self._mongo_client is not None:
             self._mongo_client.close()
             self._mongo_client = None
             self._mongo_db = None

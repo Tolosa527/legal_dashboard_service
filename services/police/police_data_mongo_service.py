@@ -1,6 +1,5 @@
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 from datetime import datetime, date
-from uuid import UUID
 from database_manager import DatabaseManager
 from dataclasses import dataclass, asdict
 from enum import Enum
@@ -247,69 +246,6 @@ class PoliceDataMongoService:
         doc = unified_data.to_mongo_dict()
         result = collection.replace_one({"id": doc["id"]}, doc, upsert=True)
         return str(result.upserted_id if result.upserted_id else doc["id"])
-
-    def get_all_police_data(
-        self, limit: Optional[int] = None
-    ) -> List[UnifiedPoliceData]:
-        """Get all police data"""
-        collection = self._get_collection()
-        cursor = collection.find().sort("created_at", -1)
-        if limit:
-            cursor = cursor.limit(limit)
-
-        return [UnifiedPoliceData.from_mongo_dict(doc) for doc in cursor]
-
-    def get_police_data_by_id(self, data_id: str) -> Optional[UnifiedPoliceData]:
-        """Get police data by ID"""
-        collection = self._get_collection()
-        doc = collection.find_one({"id": data_id})
-        return UnifiedPoliceData.from_mongo_dict(doc) if doc else None
-
-    def get_police_data_by_state(
-        self, state: UnifiedPoliceState
-    ) -> List[UnifiedPoliceData]:
-        """Get police data by state"""
-        collection = self._get_collection()
-        cursor = collection.find({"state": state.value}).sort("created_at", -1)
-        return [UnifiedPoliceData.from_mongo_dict(doc) for doc in cursor]
-
-    def get_police_data_by_police_type(
-        self, police_type: UnifiedPoliceType
-    ) -> List[UnifiedPoliceData]:
-        """Get police data by police type"""
-        collection = self._get_collection()
-        cursor = collection.find({"police_type": police_type.value}).sort(
-            "created_at", -1
-        )
-        return [UnifiedPoliceData.from_mongo_dict(doc) for doc in cursor]
-
-    def get_police_data_by_source(self, source_type: str) -> List[UnifiedPoliceData]:
-        """Get police data by source type (movement/registration)"""
-        collection = self._get_collection()
-        cursor = collection.find({"source_type": source_type}).sort("created_at", -1)
-        return [UnifiedPoliceData.from_mongo_dict(doc) for doc in cursor]
-
-    def get_police_data_by_reservation(
-        self, reservation_id: str
-    ) -> List[UnifiedPoliceData]:
-        """Get police data by reservation ID"""
-        collection = self._get_collection()
-        cursor = collection.find({"reservation_id": reservation_id}).sort(
-            "created_at", -1
-        )
-        return [UnifiedPoliceData.from_mongo_dict(doc) for doc in cursor]
-
-    def update_police_data(self, data_id: str, updates: Dict[str, Any]) -> bool:
-        """Update police data"""
-        collection = self._get_collection()
-        result = collection.update_one({"id": data_id}, {"$set": updates})
-        return result.modified_count > 0
-
-    def delete_police_data(self, data_id: str) -> bool:
-        """Delete police data"""
-        collection = self._get_collection()
-        result = collection.delete_one({"id": data_id})
-        return result.deleted_count > 0
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get optimized statistics about police data using aggregation."""
