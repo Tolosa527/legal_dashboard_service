@@ -1,14 +1,11 @@
 import reflex as rx
-from app.components import (
-    sidebar,
-    dashboard_header,
-    loading_component,
-    error_component,
-    status_overview_section,
-    stats_cards_section,
-    charts_section,
-)
-from app.states.police_data_state import PoliceDataState
+from .sidebar import sidebar
+from .header import dashboard_header
+from .loading_error import loading_component, error_component
+from .status_cards import status_overview_section
+from .stats_cards import stats_cards_section
+from .charts import charts_section
+from app.states.police.police_data_state import PoliceDataState
 
 
 def police_dashboard_page() -> rx.Component:

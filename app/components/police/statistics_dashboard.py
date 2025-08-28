@@ -1,5 +1,5 @@
 import reflex as rx
-from app.components.sidebar import sidebar
+from .sidebar import sidebar
 
 
 def statistics_dashboard_header() -> rx.Component:

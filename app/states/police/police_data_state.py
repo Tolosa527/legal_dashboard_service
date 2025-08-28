@@ -1,11 +1,11 @@
 import reflex as rx
-from services.police_data_mongo_service import PoliceDataMongoService
+from services.police.police_data_mongo_service import PoliceDataMongoService
 from database_manager import DatabaseManager
 from typing import Dict, Any
-from app.states.success_rate_calculator import calculate_success_rate
+from app.states.police.success_rate_calculator import calculate_success_rate
 from settings import settings
 from dataclasses import dataclass, field
-from app.states.config import (
+from app.states.police.config import (
     IN_PROGRESS_STATES,
     SUCCESS_STATES,
     ERROR_STATES,

@@ -18,6 +18,7 @@ class SpainHosErrorRules(PoliceErrorRules):
         "Field 'leader guest name' is required for booking registration.",
         "Invalid name format. Name and first surname are required.",
         "El nombre contiene caracteres no permitidos.",
+        "The credentials are invalid.",
         # Add more as needed from new validation errors
     ]
 
@@ -42,6 +43,27 @@ class SpainMosErrorRules(PoliceErrorRules):
         "Contains non-printable characters",
         "Field length incorrect",
         "Conté caracters no imprimibles",
+        # Add more as needed from new validation errors
+    ]
+
+    def is_expected_error(
+        self, error_reason: str, state: str, doc: Dict[str, Any]
+    ) -> bool:
+        if (
+            state in ["ERROR", "INVALID"]
+            and any(
+                msg in error_reason
+                for msg in self.EXPECTED_INVALID_REASONS
+            )
+        ):
+            return True
+        return False
+
+
+class ItalyIspErrorRules(PoliceErrorRules):
+    EXPECTED_INVALID_REASONS = [
+        "Wrong credentials",
+        "Data di Arrivo Errata",
         # Add more as needed from new validation errors
     ]
 

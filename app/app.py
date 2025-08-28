@@ -1,9 +1,9 @@
 import reflex as rx
-from app.components.police_dashboard import police_dashboard_page
-from app.components.statistics_dashboard import statistics_dashboard_page
-from app.components.police_type_detail import police_type_detail_page
-from app.states.police_data_state import PoliceDataState
-from app.states.navigation_state import NavigationState
+from app.components.police.police_dashboard import police_dashboard_page
+from app.components.police.statistics_dashboard import statistics_dashboard_page
+from app.components.police.police_type_detail import police_type_detail_page
+from app.states.police.police_data_state import PoliceDataState
+from app.states.police.navigation_state import NavigationState
 
 
 def index() -> rx.Component:

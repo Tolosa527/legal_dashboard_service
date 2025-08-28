@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from app.states.police_error_analyzer.analyzer import analyze_errors
+from app.states.police.police_error_analyzer.analyzer import analyze_errors
 
 
 def calculate_success_rate(

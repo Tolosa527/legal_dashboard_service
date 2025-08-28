@@ -1,5 +1,5 @@
 import reflex as rx
-from app.states.navigation_state import NavigationState
+from app.states.police.navigation_state import NavigationState
 
 
 def sidebar_link(text: str, url: str, is_active: bool, icon: str) -> rx.Component:

@@ -1,5 +1,5 @@
 import reflex as rx
-from app.states.police_data_state import PoliceDataState
+from app.states.police.police_data_state import PoliceDataState
 
 
 def navigate_back_to_dashboard():
