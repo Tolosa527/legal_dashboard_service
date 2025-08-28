@@ -16,6 +16,9 @@ from app.states.config import (
     CACHE_TIMEOUT,
 )
 
+from logging import Logger
+
+logger = Logger(__name__)
 
 @dataclass
 class PoliceTypeStatusResult:
@@ -55,8 +58,6 @@ class PoliceTypeStatusResult:
 
 
 class PoliceDataState(rx.State):
-    """State to manage police data."""
-
     # Store aggregated statistics instead of all raw data
     stats_cache: Dict[str, Any] = {}
     police_type_data: Dict[str, Any] = {}

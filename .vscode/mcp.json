@@ -17,12 +17,19 @@
         "args": ["-y", "@executeautomation/playwright-mcp-server"]
     },
     "postgres": {
-        "command": "/home/matias/.nvm/versions/node/v22.18.0/bin/npx",
-        "args": [
-        "-y",
-        "@modelcontextprotocol/server-postgres",
-        "${input:pg_url}"
-        ]
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "DATABASE_URI",
+        "crystaldba/postgres-mcp",
+        "--access-mode=restricted"
+      ],
+      "env": {
+        "DATABASE_URI": "${input:pg_url}"
+      }
     },
     "MongoDB": {
       "command": "npx",

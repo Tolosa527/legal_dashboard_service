@@ -94,6 +94,7 @@ class CheckoutStatus(Enum):
     ERROR = "ERROR"
     SENT_TO_CANCEL = "SENT_TO_CANCEL"
     NOT_USED = "NOT_USED"
+    SCHEDULED = "SCHEDULED"
 
     def is_success(self) -> bool:
         """Check if this checkout status represents success"""

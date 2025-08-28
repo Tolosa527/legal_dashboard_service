@@ -35,9 +35,35 @@ class SpainHosErrorRules(PoliceErrorRules):
         return False
 
 
+class SpainMosErrorRules(PoliceErrorRules):
+    EXPECTED_INVALID_REASONS = [
+        "Validation error",
+        "Postal code does not match expected format",
+        "Contains non-printable characters",
+        "Field length incorrect",
+        "Conté caracters no imprimibles",
+        # Add more as needed from new validation errors
+    ]
+
+    def is_expected_error(
+        self, error_reason: str, state: str, doc: Dict[str, Any]
+    ) -> bool:
+        if (
+            state in ["ERROR", "INVALID"]
+            and any(
+                msg in error_reason
+                for msg in self.EXPECTED_INVALID_REASONS
+            )
+        ):
+            return True
+        return False
+
+
 def get_error_rules_for_police_type(police_type: str) -> PoliceErrorRules:
     if police_type == "SPAIN_HOS":
         return SpainHosErrorRules()
+    elif police_type == "MOS":
+        return SpainMosErrorRules()
     # Add more police types here
     return PoliceErrorRules()
 
