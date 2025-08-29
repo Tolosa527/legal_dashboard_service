@@ -19,4 +19,4 @@ RUN pip install --no-cache-dir -e .
 COPY . .
 
 # Run the sync script
-CMD ["python", "sync_police_data.py"]
+CMD ["python", "sync_data.py"]

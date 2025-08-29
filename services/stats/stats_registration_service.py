@@ -17,14 +17,15 @@ class StatRegistrationService:
         """Get police registrations within date range based on created_at"""
         query = """
         SELECT
+            sr.id,
             sr.status_check_in as status_check_in,
             sr.status_check_out as status_check_out,
-            srt.status_details,
+            sr.status_check_in_details,
+            sr.status_check_out_details,
             sr.updated_at,
             sr.created_at,
             sr.reservation_id,
-            sr.id,
-            COALESCE(srt.stat_report -> 'stat_account' ->> 'type', NULL) as police_type
+            COALESCE(srt.stat_report -> 'stat_account' ->> 'type', NULL) as stat_type
         FROM stat_registrations sr
         JOIN stat_registration_tasks srt ON srt.id IN (sr.task_check_in_id, sr.task_check_out_id)
         WHERE srt.created_at >= %s AND srt.created_at <= %s

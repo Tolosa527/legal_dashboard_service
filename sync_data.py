@@ -194,9 +194,8 @@ def sync_stat_data():
         print("\n📈 Sync Summary:")
         stats = stat_mongo_service.get_statistics()
         print(f"Total records: {stats['total_records']}")
-        print(f"Stat records: {stats['stats']}")
         print(f"State distribution: {stats['state_distribution']}")
-        print(f"Type distribution: {stats['type_distribution']}")
+        print(f"Type distribution: {stats['stat_type_distribution']}")
 
     except Exception as e:
         print(f"💥 Error during stat data sync: {e}")

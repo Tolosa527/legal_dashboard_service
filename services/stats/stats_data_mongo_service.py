@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from collections import defaultdict
 from database_manager import DatabaseManager
 
 
@@ -42,7 +43,6 @@ class StatDataMongoService:
 
         # Basic counts
         total_count = collection.count_documents({})
-        stat_count = collection.count_documents({"source_type": "stat_data"})
 
         status_check_in_pipeline = [
             {"$group": {"_id": "$status_check_in", "count": {"$sum": 1}}},
@@ -52,15 +52,18 @@ class StatDataMongoService:
             {"$group": {"_id": "$status_check_out", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
         ]
-        status_result = list(collection.aggregate(
-            status_check_in_pipeline + status_check_out_pipeline))
+        status_result_check_out = list(collection.aggregate(status_check_out_pipeline))
+        status_result_check_in = list(collection.aggregate(status_check_in_pipeline))
 
-        status_distribution = {
-            item["_id"]: item["count"] for item in status_result
-        }
+        result = defaultdict(int)
+        # Sum counts grouped by _id
+        for d in status_result_check_out + status_result_check_in:
+            result[d["_id"]] += d["count"]
+
+        status_distribution = [{"_id": k, "count": v} for k, v in result.items()]
 
         type_pipeline = [
-            {"$group": {"_id": "$type", "count": {"$sum": 1}}},
+            {"$group": {"_id": "$stat_type", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
         ]
 
@@ -71,7 +74,6 @@ class StatDataMongoService:
 
         return {
             "total_records": total_count,
-            "stats": stat_count,
             "state_distribution": status_distribution,
-            "type_distribution": status_type_distribution
+            "stat_type_distribution": status_type_distribution
         }
