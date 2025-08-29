@@ -1,9 +1,9 @@
+# Fixed remaining long lines in `StatisticsDataState`
 import reflex as rx
-from services.police.police_data_mongo_service import PoliceDataMongoService
-from app.states.success_rate_utils import calculate_police_success_rate
+from services.stats.stats_data_mongo_service import StatDataMongoService
 from database_manager import DatabaseManager
 from typing import Dict, Any
-
+from app.states.success_rate_utils import calculate_stat_success_rate
 from settings import settings
 from dataclasses import dataclass, field
 from app.states.police.config import (
@@ -23,8 +23,9 @@ logger = Logger(__name__)
 
 
 @dataclass
-class PoliceTypeStatusResult:
-    police_type: str
+class StatisticsTypeStatusResult:
+
+    stat_type: str
     total_records: int
     success_rate: float
     status: str
@@ -34,9 +35,9 @@ class PoliceTypeStatusResult:
     states: Dict[str, int] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "PoliceTypeStatusResult":
+    def from_dict(cls, data: Dict[str, Any]) -> "StatisticsTypeStatusResult":
         return cls(
-            police_type=data["police_type"],
+            stat_type=data["stat_type"],
             total_records=data["total_records"],
             success_rate=data["success_rate"],
             status=data["status"],
@@ -48,7 +49,7 @@ class PoliceTypeStatusResult:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "police_type": self.police_type,
+            "stat_type": self.stat_type,
             "total_records": self.total_records,
             "success_rate": self.success_rate,
             "status": self.status,
@@ -59,13 +60,13 @@ class PoliceTypeStatusResult:
         }
 
 
-class PoliceDataState(rx.State):
+class StatisticsDataState(rx.State):
     # Store aggregated statistics instead of all raw data
     stats_cache: Dict[str, Any] = {}
-    police_type_data: Dict[str, Any] = {}
+    statistics_type_data: Dict[str, Any] = {}
     loading: bool = True
     error_message: str = ""
-    selected_police_type: str = ""
+    selected_statistics_type: str = ""
     cache_timestamp: float = 0
 
     # Cache timeout in seconds (from config)
@@ -92,57 +93,71 @@ class PoliceDataState(rx.State):
             connection_string=settings.get_mongo_connection_string(),
             database=settings.get_mongo_database(),
         )
-        police_data_service = PoliceDataMongoService(db_manager=db_manager)
+        stats_data_service = StatDataMongoService(db_manager=db_manager)
         # Use context manager to modify state in background task
         async with self:
             try:
                 # Get aggregated statistics instead of all data
-                stats = police_data_service.get_statistics()
+                stats = stats_data_service.get_statistics()
                 self.stats_cache = stats
                 self.cache_timestamp = current_time
-                # Get police type status data
-                self.police_type_data = await self._get_police_type_statistics(
-                    police_data_service
+                # Get statistics type status data
+                self.statistics_type_data = await self._get_statistics_type_statistics(
+                    stats_data_service
                 )
                 self.loading = False
             except Exception as e:
                 self.error_message = f"Failed to load data: {str(e)}"
                 self.loading = False
 
-    async def _get_police_type_statistics(
-        self, service: PoliceDataMongoService
-    ) -> Dict[str, PoliceTypeStatusResult]:
-        """Get aggregated statistics by police type."""
-        # Get aggregated data by police type and state
+    async def _get_statistics_type_statistics(
+        self, service: StatsDataMongoService
+    ) -> Dict[str, StatisticsTypeStatusResult]:
+        """Get aggregated statistics by statistics type."""
+        # Get aggregated data by statistics type and state
         collection = service._get_collection()
         success_states = SUCCESS_STATES
         error_states = ERROR_STATES
-        # Simplified aggregation pipeline for police type statistics
+        # Simplified aggregation pipeline for statistics type statistics
         pipeline = [
             {
                 "$group": {
-                    "_id": "$police_type",
-                    "states": {"$push": {"state": "$state", "count": 1}},
-                    "total": {"$sum": 1},
-                    "docs": {
+                    "_id": "$stat_type",
+                    "status_check_in": {
                         "$push": {
-                            "state": "$state",
-                            "reason": "$reason"
+                            "state": {"$ifNull": ["$status_check_in", "Unknown"]},
+                            "count": 1
                         }
                     },
+                    "status_check_out": {
+                        "$push": {
+                            "state": {"$ifNull": ["$status_check_out", "Unknown"]},
+                            "count": 1
+                        }
+                    },
+                    "docs": {
+                        "$push": {
+                            "status_check_in": {"$ifNull": ["$status_check_in", "Unknown"]},
+                            "status_check_out": {"$ifNull": ["$status_check_out", "Unknown"]},
+                            "status_check_in_details": {"$ifNull": ["$status_check_in_details", "Unknown"]},
+                            "status_check_out_details": {"$ifNull": ["$status_check_out_details", "Unknown"]}
+                        }
+                    },
+                    "total": {"$sum": 1},
                 }
             }
         ]
-        from collections import Counter
         result = list(collection.aggregate(pipeline))
         # Process the aggregated data
-        police_type_stats = {}
+        statistics_type_stats = {}
         for item in result:
-            police_type = item["_id"]
+            statistics_type = item["_id"]
             total_records = item["total"]
             # Aggregate state counts properly
-            state_counter = Counter()
-            for state_info in item["states"]:
+            state_counter: Counter = Counter()
+            for state_info in (
+                item["status_check_in"] + item["status_check_out"]
+            ):
                 state = state_info["state"]
                 count = state_info["count"]
                 state_counter[state] += count
@@ -151,11 +166,10 @@ class PoliceDataState(rx.State):
                 count for state, count in states.items()
                 if state in success_states
             )
-            success_rate = calculate_police_success_rate(
+            success_rate = calculate_stat_success_rate(
                 success_count=success_count,
                 error_states=error_states,
                 docs=item.get("docs", []),
-                police_type=police_type,
             )
             # Determine status
             if success_rate >= SUCCESS_RATE_THRESHOLDS.good:
@@ -171,8 +185,8 @@ class PoliceDataState(rx.State):
                 color = STATUS_COLORS.error
                 icon = STATUS_ICONS.error
 
-            police_type_stats[police_type] = PoliceTypeStatusResult(
-                police_type=police_type,
+            statistics_type_stats[statistics_type] = StatisticsTypeStatusResult(
+                stat_type=statistics_type,
                 total_records=total_records,
                 success_rate=round(success_rate, 1),
                 status=status,
@@ -182,28 +196,28 @@ class PoliceDataState(rx.State):
                 states=states,
             )
 
-        return police_type_stats
+        return statistics_type_stats
 
     @rx.event(background=True)
-    async def fetch_police_data(self):
+    async def fetch_statistics_data(self):
         """
         Legacy method - now just calls fetch_dashboard_stats for compatibility.
         """
-        yield PoliceDataState.fetch_dashboard_stats
+        yield StatisticsDataState.fetch_dashboard_stats
 
     @rx.event
-    def set_selected_police_type(self, police_type: str):
-        """Set the selected police type for detailed view."""
-        self.selected_police_type = police_type
+    def set_selected_statistics_type(self, statistics_type: str):
+        """Set the selected statistics type for detailed view."""
+        self.selected_statistics_type = statistics_type
 
     @rx.var
-    def get_police_data(self) -> list[dict]:
+    def get_statistics_data(self) -> list[dict]:
         """Return empty list - use specific statistics methods instead."""
         return []
 
     @rx.var
-    def get_police_state_chart_data(self) -> list[dict]:
-        """Get police data aggregated by state for pie chart."""
+    def get_statistics_state_chart_data(self) -> list[dict]:
+        """Get statistics data aggregated by state for pie chart."""
         if (
             not self.stats_cache or
             "state_distribution" not in self.stats_cache
@@ -218,24 +232,24 @@ class PoliceDataState(rx.State):
         ]
 
     @rx.var
-    def get_police_type_chart_data(self) -> list[dict]:
-        """Get police data aggregated by police type for pie chart."""
+    def get_statistics_type_chart_data(self) -> list[dict]:
+        """Get statistics data aggregated by statistics type for pie chart."""
         if (
             not self.stats_cache or
-            "police_type_distribution" not in self.stats_cache
+            "statistics_type_distribution" not in self.stats_cache
         ):
             return []
 
         # Convert type distribution to chart format
-        type_dist = self.stats_cache["police_type_distribution"]
+        type_dist = self.stats_cache["statistics_type_distribution"]
         return [
-            {"name": police_type, "value": count}
-            for police_type, count in type_dist.items()
+            {"name": statistics_type, "value": count}
+            for statistics_type, count in type_dist.items()
         ]
 
     @rx.var
     def get_total_records(self) -> int:
-        """Get total number of police records."""
+        """Get total number of statistics records."""
         return self.stats_cache.get("total_records", 0)
 
     @rx.var
@@ -282,14 +296,14 @@ class PoliceDataState(rx.State):
 
     @rx.var
     def get_active_types(self) -> int:
-        """Get number of different police types."""
+        """Get number of different statistics types."""
         if (
             not self.stats_cache or
-            "police_type_distribution" not in self.stats_cache
+            "statistics_type_distribution" not in self.stats_cache
         ):
             return 0
 
-        return len(self.stats_cache["police_type_distribution"])
+        return len(self.stats_cache["statistics_type_distribution"])
 
     @rx.var
     def get_service_status(self) -> str:
@@ -350,20 +364,20 @@ class PoliceDataState(rx.State):
             return STATUS_ICONS.error
 
     @rx.var
-    def get_police_type_status(self) -> list[dict]:
-        """Get service status for each police type."""
-        if not self.police_type_data:
+    def get_statistics_type_status(self) -> list[dict]:
+        """Get service status for each statistics type."""
+        if not self.statistics_type_data:
             return []
 
-        # Convert police type data to list format expected by UI
+        # Convert statistics type data to list format expected by UI
         result = []
-        for police_type, data in self.police_type_data.items():
-            # Ensure data is a PoliceTypeStatusResult instance
+        for statistics_type, data in self.statistics_type_data.items():
+            # Ensure data is a StatisticsTypeStatusResult instance
             if isinstance(data, dict):
-                data = PoliceTypeStatusResult.from_dict(data)
+                data = StatisticsTypeStatusResult.from_dict(data)
             result.append(
                 {
-                    "type": police_type,
+                    "type": statistics_type,
                     "status": getattr(data, "status", "Unknown"),
                     "color": getattr(data, "color", "grey"),
                     "icon": getattr(data, "icon", ""),
@@ -376,23 +390,23 @@ class PoliceDataState(rx.State):
         return sorted(result, key=lambda x: x["success_rate"], reverse=True)
 
     @rx.var
-    def get_police_type_detail_data(self) -> dict:
-        """Get detailed data for the selected police type."""
-        if not self.police_type_data or not self.selected_police_type:
+    def get_statistics_type_detail_data(self) -> dict:
+        """Get detailed data for the selected statistics type."""
+        if not self.statistics_type_data or not self.selected_statistics_type:
             return {}
 
-        if self.selected_police_type not in self.police_type_data:
+        if self.selected_statistics_type not in self.statistics_type_data:
             return {
-                "type": self.selected_police_type,
+                "type": self.selected_statistics_type,
                 "total_records": 0,
                 "success_records": 0,
                 "success_rate": 0.0,
                 "status": "Unknown",
             }
 
-        data = self.police_type_data[self.selected_police_type]
+        data = self.statistics_type_data[self.selected_statistics_type]
         return {
-            "type": self.selected_police_type,
+            "type": self.selected_statistics_type,
             "total_records": data.total_records,
             "success_records": data.success_records,
             "success_rate": data.success_rate,
@@ -400,11 +414,12 @@ class PoliceDataState(rx.State):
         }
 
     @rx.var
-    def get_police_type_recent_records(self) -> list[dict]:
+    def get_statistics_type_recent_records(self) -> list[dict]:
         """
-        Get recent records for the selected police type - now returns empty for
+        Get recent records for the selected statistics type - now returns empty for
         performance.
         """
         # For performance, we no longer load individual records
         # This could be implemented as a separate on-demand fetch if needed
         return []
+
