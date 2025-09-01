@@ -20,16 +20,12 @@ def filter_expected_errors(
         check_out_status = doc.get("status_check_out")
         reason_check_in = doc.get("status_check_in_details", "")
         reason_check_out = doc.get("status_check_out_details", "")
-        if (
-            check_in_status in error_states
-            and not rules.is_expected_error(
-                error_reason=reason_check_in, state=check_in_status)
+        if check_in_status in error_states and not rules.is_expected_error(
+            error_reason=reason_check_in, state=check_in_status
         ):
             filtered.append(doc)
-        if (
-            check_out_status in error_states
-            and not rules.is_expected_error(
-                error_reason=reason_check_out, state=check_out_status)
+        if check_out_status in error_states and not rules.is_expected_error(
+            error_reason=reason_check_out, state=check_out_status
         ):
             filtered.append(doc)
     return filtered

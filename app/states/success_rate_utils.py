@@ -6,7 +6,7 @@ def calculate_police_success_rate(
     success_count: int,
     error_states: List[str],
     docs: List[Dict[str, Any]] = None,
-    police_type: str = None
+    police_type: str = None,
 ) -> float:
     # Lazy import to avoid circular imports when modules that import this
     # utility also import police state modules.
@@ -28,13 +28,11 @@ def calculate_stat_success_rate(
     success_count: int,
     error_states: List[str],
     docs: List[Dict[str, Any]] = None,
-    stat_type: str = None
+    stat_type: str = None,
 ) -> float:
     if docs is not None and stat_type is not None:
         errors = filter_expected_errors(
-            docs=docs,
-            stat_type=stat_type,
-            error_states=error_states
+            docs=docs, stat_type=stat_type, error_states=error_states
         )
         error_count = len(errors)
         denominator = success_count + error_count

@@ -1,6 +1,7 @@
 import reflex as rx
 from datetime import datetime
 
+
 def dashboard_header() -> rx.Component:
     """Enhanced header component with modern styling and real-time indicators."""
     return rx.box(

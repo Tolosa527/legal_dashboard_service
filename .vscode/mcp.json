@@ -12,10 +12,6 @@
     }
   ],
 "servers": {
-    "playwright": {
-        "command": "/home/matias/.nvm/versions/node/v22.18.0/bin/npx",
-        "args": ["-y", "@executeautomation/playwright-mcp-server"]
-    },
     "postgres": {
       "command": "docker",
       "args": [
@@ -38,6 +34,12 @@
         "mongodb-mcp-server",
         "--connectionString",
         "${input:mongo_url}",
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
       ]
     }
   }

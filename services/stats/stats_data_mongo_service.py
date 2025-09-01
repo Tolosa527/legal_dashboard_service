@@ -52,10 +52,8 @@ class StatDataMongoService:
             {"$group": {"_id": "$status_check_out", "count": {"$sum": 1}}},
             {"$sort": {"count": -1}},
         ]
-        status_result_check_out = list(
-            collection.aggregate(status_check_out_pipeline))
-        status_result_check_in = list(
-            collection.aggregate(status_check_in_pipeline))
+        status_result_check_out = list(collection.aggregate(status_check_out_pipeline))
+        status_result_check_in = list(collection.aggregate(status_check_in_pipeline))
 
         result = defaultdict(int)
         # Sum counts grouped by _id

@@ -30,7 +30,9 @@ def statistics_dashboard_page() -> rx.Component:
                                     StatisticsDataState.get_active_types,
                                 ),
                                 status_overview_section(
-                                    StatisticsDataState.get_statistics_type_status
+                                    StatisticsDataState.get_statistics_type_status,
+                                    "statistics-type",
+                                    "Service Status by Statistics Type",
                                 ),
                                 spacing="6",
                                 align="center",

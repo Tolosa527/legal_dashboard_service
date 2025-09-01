@@ -6,7 +6,7 @@ from app.states.police.police_error_rules import (
     ItalyIspErrorRules,
     NatErrorRules,
     PortugalSEFErrorRules,
-    DubaiDTCMErrorRules
+    DubaiDTCMErrorRules,
 )
 
 
@@ -36,10 +36,8 @@ def analyze_police_errors(
     for doc in docs:
         state = doc.get("state")
         reason = doc.get("reason", "")
-        if (
-            state in error_states
-            and not rules.is_expected_error(
-                error_reason=reason, state=state)
+        if state in error_states and not rules.is_expected_error(
+            error_reason=reason, state=state
         ):
             filtered.append(doc)
     return filtered

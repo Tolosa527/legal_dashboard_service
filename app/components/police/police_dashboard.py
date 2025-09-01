@@ -34,16 +34,16 @@ def police_dashboard_page() -> rx.Component:
                                 status_overview_section(
                                     PoliceDataState.get_police_type_status
                                 ),
-                                # charts_section(
-                                #     PoliceDataState.get_police_state_chart_data,
-                                #     PoliceDataState.get_police_type_chart_data,
-                                # ),
-                                spacing="6",
+                                charts_section(
+                                    PoliceDataState.get_police_state_chart_data,
+                                    PoliceDataState.get_police_type_chart_data,
+                                ),
+                                spacing="8",
                                 align="center",
                                 width="100%",
-                                padding="2rem",
+                                padding="3rem",
                             ),
-                            max_width="1200px",
+                            max_width="1400px",
                             margin_x="auto",
                         ),
                         width="100%",

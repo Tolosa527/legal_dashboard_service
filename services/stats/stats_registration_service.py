@@ -38,7 +38,4 @@ class StatRegistrationService:
             rows = cur.fetchall()
             columns = [desc[0] for desc in cur.description]
 
-        return [
-            StatRegistration.from_db_row(dict(zip(columns, row)))
-            for row in rows
-        ]
+        return [StatRegistration.from_db_row(dict(zip(columns, row))) for row in rows]

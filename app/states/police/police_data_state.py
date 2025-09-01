@@ -20,8 +20,6 @@ from logging import Logger
 
 logger = Logger(__name__)
 
-LIMIT_OF_DETAIL = 10
-
 
 @dataclass
 class PoliceTypeStatusResult:
@@ -68,6 +66,17 @@ class PoliceDataState(rx.State):
     error_message: str = ""
     selected_police_type: str = ""
     cache_timestamp: float = 0
+
+    # Modal state for showing reasons by state
+    show_reasons_modal: bool = False
+    selected_state: str = ""
+    state_reasons: list[dict] = []
+
+    # Pagination for reasons modal
+    reasons_current_page: int = 1
+    reasons_items_per_page: int = 5
+    total_reasons_count: int = 0
+    limit_of_details: int = 10
 
     # Cache timeout in seconds (from config)
     CACHE_TIMEOUT: float = CACHE_TIMEOUT
@@ -125,16 +134,12 @@ class PoliceDataState(rx.State):
                     "_id": "$police_type",
                     "states": {"$push": {"state": "$state", "count": 1}},
                     "total": {"$sum": 1},
-                    "docs": {
-                        "$push": {
-                            "state": "$state",
-                            "reason": "$reason"
-                        }
-                    },
+                    "docs": {"$push": {"state": "$state", "reason": "$reason"}},
                 }
             }
         ]
         from collections import Counter
+
         result = list(collection.aggregate(pipeline))
         # Process the aggregated data
         police_type_stats = {}
@@ -149,8 +154,7 @@ class PoliceDataState(rx.State):
                 state_counter[state] += count
             states = dict(state_counter)
             success_count = sum(
-                count for state, count in states.items()
-                if state in success_states
+                count for state, count in states.items() if state in success_states
             )
             success_rate = calculate_police_success_rate(
                 success_count=success_count,
@@ -216,26 +220,17 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_police_state_chart_data(self) -> list[dict]:
         """Get police data aggregated by state for pie chart."""
-        if (
-            not self.stats_cache or
-            "state_distribution" not in self.stats_cache
-        ):
+        if not self.stats_cache or "state_distribution" not in self.stats_cache:
             return []
 
         # Convert state distribution to chart format
         state_dist = self.stats_cache["state_distribution"]
-        return [
-            {"name": state, "value": count}
-            for state, count in state_dist.items()
-        ]
+        return [{"name": state, "value": count} for state, count in state_dist.items()]
 
     @rx.var
     def get_police_type_chart_data(self) -> list[dict]:
         """Get police data aggregated by police type for pie chart."""
-        if (
-            not self.stats_cache or
-            "police_type_distribution" not in self.stats_cache
-        ):
+        if not self.stats_cache or "police_type_distribution" not in self.stats_cache:
             return []
 
         # Convert type distribution to chart format
@@ -264,9 +259,9 @@ class PoliceDataState(rx.State):
         for police_data in self.police_type_data.values():
             records = police_data.total_records
             success_rate = police_data.success_rate
-            
+
             total_records += records
-            weighted_success += (success_rate * records)
+            weighted_success += success_rate * records
 
         if total_records == 0:
             return 0.0
@@ -276,10 +271,7 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_error_count(self) -> int:
         """Get count of error records."""
-        if (
-            not self.stats_cache or
-            "state_distribution" not in self.stats_cache
-        ):
+        if not self.stats_cache or "state_distribution" not in self.stats_cache:
             return 0
 
         return self.stats_cache["state_distribution"].get("ERROR", 0)
@@ -287,10 +279,7 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_active_types(self) -> int:
         """Get number of different police types."""
-        if (
-            not self.stats_cache or
-            "police_type_distribution" not in self.stats_cache
-        ):
+        if not self.stats_cache or "police_type_distribution" not in self.stats_cache:
             return 0
 
         return len(self.stats_cache["police_type_distribution"])
@@ -298,11 +287,8 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_service_status(self) -> str:
         """Get service status based on success rate thresholds."""
-    # Calculate success rate inline instead of calling another @rx.var method
-        if (
-            not self.stats_cache or
-            "state_distribution" not in self.stats_cache
-        ):
+        # Calculate success rate inline instead of calling another @rx.var method
+        if not self.stats_cache or "state_distribution" not in self.stats_cache:
             return "Error"
 
         state_dist = self.stats_cache["state_distribution"]
@@ -315,8 +301,7 @@ class PoliceDataState(rx.State):
             if state not in in_progress_states
         )
         success_count = sum(
-            count for state, count in state_dist.items()
-            if state in success_states
+            count for state, count in state_dist.items() if state in success_states
         )
 
         if completed_count == 0:
@@ -394,7 +379,7 @@ class PoliceDataState(rx.State):
                     police_type = ""
             except Exception:
                 police_type = ""
-        
+
         if not self.police_type_data or not police_type:
             return {}
 
@@ -444,14 +429,296 @@ class PoliceDataState(rx.State):
             )
             collection = mongo_db["police_data"]
             # Exclude documents with state "NEW"
-            records = list(collection.find(
-                {
-                    "police_type": police_type,
-                    "state": {"$nin": ["NEW", "SCHEDULED", "CANCELED"]}
-                },
-                {"state": 1, "reason": 1, "created_at": 1, "_id": 0}
-            ).sort("created_at", -1).limit(LIMIT_OF_DETAIL))
+            records = list(
+                collection.find(
+                    {
+                        "police_type": police_type,
+                        "state": {"$nin": ["NEW", "SCHEDULED", "CANCELED"]},
+                    },
+                    {"state": 1, "reason": 1, "created_at": 1, "_id": 0},
+                )
+                .sort("created_at", -1)
+                .limit(self.limit_of_details)
+            )
             return records
         except Exception as e:
             logger.error(f"Error fetching recent records: {str(e)}")
             return []
+
+    @rx.var
+    def get_police_type_state_distribution(self) -> list[dict]:
+        """Get state distribution for selected police type as chart data."""
+        # Get police_type from URL params if selected_police_type is not set
+        police_type = self.selected_police_type
+        if not police_type:
+            try:
+                # Try to extract police_type from the URL path
+                path = self.router.url.path
+                if "/police-type/" in path:
+                    police_type = path.split("/police-type/")[-1]
+                else:
+                    police_type = ""
+            except Exception:
+                police_type = ""
+
+        if not police_type or not self.police_type_data:
+            return []
+
+        # Get the states data for this police type
+        police_data = self.police_type_data.get(police_type)
+        if not police_data or not hasattr(police_data, "states"):
+            return []
+
+        states_attr = getattr(police_data, "states", {})
+        if hasattr(police_data, "states"):
+            states = police_data.states
+        else:
+            states = states_attr
+
+        # Convert to chart format with cleaned state names
+        cleaned_data = []
+        for state, count in states.items():
+            if count > 0:  # Only include states with actual data
+                # Clean up state name - remove technical details
+                clean_state_name = state
+                if "state_data_rx_state_" in str(state):
+                    # Extract just the state name from technical strings
+                    parts = str(state).split("state_data_rx_state_")
+                    clean_state_name = parts[0].strip()
+                elif "[" in str(state) and "]" in str(state):
+                    # Remove any bracketed content
+                    clean_state_name = str(state).split("[")[0].strip()
+
+                # Ensure clean_state_name is not empty
+                if clean_state_name:
+                    cleaned_data.append({"name": clean_state_name, "value": count})
+
+        return cleaned_data
+
+    @rx.event
+    def close_reasons_modal(self):
+        """Close the reasons modal."""
+        self.show_reasons_modal = False
+        self.selected_state = ""
+        self.state_reasons = []
+        self.total_reasons_count = 0
+        self.reasons_current_page = 1
+
+    @rx.event(background=True)
+    async def show_reasons_for_state(self):
+        """Show modal with reasons for the selected state."""
+        # Debug: Log the current selected_state at the very beginning
+        initial_state = self.selected_state
+        print(
+            f"DEBUG: show_reasons_for_state called with "
+            f"initial selected_state: '{initial_state}'"
+        )
+
+        # IMMEDIATELY set show_reasons_modal to True to open the modal
+        async with self:
+            self.show_reasons_modal = True
+            current_state = self.selected_state
+            print(
+                f"DEBUG: Inside async context, selected_state is: " f"'{current_state}'"
+            )
+            print(f"DEBUG: Modal opened with state: '{current_state}'")
+
+        # Get police_type from URL params if selected_police_type is not set
+        police_type = self.selected_police_type
+        if not police_type:
+            try:
+                # Try to extract police_type from the URL path
+                path = self.router.url.path
+                if "/police-type/" in path:
+                    police_type = path.split("/police-type/")[-1]
+                else:
+                    police_type = ""
+            except Exception:
+                police_type = ""
+
+        final_state = self.selected_state
+        print(
+            f"DEBUG: Using police_type: '{police_type}', "
+            f"final selected_state: '{final_state}'"
+        )
+
+        if not police_type:
+            async with self:
+                self.state_reasons = []
+            return
+
+        # Fetch reasons for this state and police type
+        try:
+            db_manager = DatabaseManager.get_instance()
+            mongo_db = db_manager.connect_mongo(
+                connection_string=settings.get_mongo_connection_string(),
+                database=settings.get_mongo_database(),
+            )
+            collection = mongo_db["police_data"]
+
+            # Debug: Log the query parameters
+            state = self.selected_state
+            logger.info(
+                f"Fetching reasons for police_type: {police_type}, " f"state: {state}"
+            )
+            print(f"DEBUG: About to query database with state: '{state}'")
+
+            # First, let's check if there are any records at all for this
+            # police_type and state
+            total_records = collection.count_documents(
+                {"police_type": police_type, "state": self.selected_state}
+            )
+            logger.info(
+                f"Total records found: {total_records} for "
+                f"police_type {police_type} and state {state}"
+            )
+
+            # Get records for this police type and state with reasons
+            records = list(
+                collection.find(
+                    {
+                        "police_type": police_type,
+                        "state": self.selected_state,
+                        "reason": {"$exists": True, "$nin": [None, ""]},
+                    },
+                    {"reason": 1, "created_at": 1, "_id": 0},
+                )
+                .sort("created_at", -1)
+                .limit(100)
+            )  # Limit to prevent overflow
+
+            logger.info(f"Records with reasons found: {len(records)}")
+            if records:
+                logger.info(f"Sample record: {records[0]}")
+
+            # Group by reason and count occurrences
+            from collections import Counter
+
+            reason_counter = Counter([r.get("reason", "Unknown") for r in records])
+
+            # Convert to list format for display
+            reasons_list = [
+                {"reason": reason, "count": count}
+                for reason, count in reason_counter.most_common()
+            ]
+
+            async with self:
+                self.state_reasons = reasons_list
+                self.total_reasons_count = len(reasons_list)
+                self.reasons_current_page = 1  # Reset to first page
+
+        except Exception as e:
+            state = self.selected_state
+            logger.error(f"Error fetching reasons for state {state}: {str(e)}")
+            async with self:
+                self.state_reasons = []
+                self.total_reasons_count = 0
+                self.reasons_current_page = 1
+
+    def handle_state_click(self, state_name: str):
+        """Handle click on a state button."""
+        self.selected_state = state_name
+        return PoliceDataState.show_reasons_for_state
+
+    def show_success_reasons(self):
+        """Show reasons for SUCCESS state."""
+        self.selected_state = "SUCCESS"
+        return PoliceDataState.show_reasons_for_state
+
+    def show_error_reasons(self):
+        """Show reasons for ERROR state."""
+        self.selected_state = "ERROR"
+        return PoliceDataState.show_reasons_for_state
+
+    def show_complete_reasons(self):
+        """Show reasons for COMPLETE state."""
+        self.selected_state = "COMPLETE"
+        return PoliceDataState.show_reasons_for_state
+
+    def show_confirmed_reasons(self):
+        """Show reasons for CONFIRMED state."""
+        self.selected_state = "CONFIRMED"
+        return PoliceDataState.show_reasons_for_state
+
+    def show_progress_reasons(self):
+        """Show reasons for PROGRESS state."""
+        self.selected_state = "PROGRESS"
+        return PoliceDataState.show_reasons_for_state
+
+    def show_new_reasons(self):
+        """Show reasons for NEW state."""
+        self.selected_state = "NEW"
+        return PoliceDataState.show_reasons_for_state
+
+    def show_invalid_reasons(self):
+        """Show reasons for INVALID state."""
+        print("DEBUG: show_invalid_reasons called, setting to 'INVALID'")
+        self.selected_state = "INVALID"
+        print(f"DEBUG: selected_state is now: '{self.selected_state}'")
+        return PoliceDataState.show_reasons_for_state
+
+    def show_expired_reasons(self):
+        """Show reasons for EXPIRED state."""
+        self.selected_state = "EXPIRED"
+        return PoliceDataState.show_reasons_for_state
+
+    def show_in_progress_reasons(self):
+        """Show reasons for IN_PROGRESS state."""
+        self.selected_state = "IN_PROGRESS"
+        return PoliceDataState.show_reasons_for_state
+
+    def show_canceled_reasons(self):
+        """Show reasons for CANCELED state."""
+        self.selected_state = "CANCELED"
+        return PoliceDataState.show_reasons_for_state
+
+    @rx.var
+    def get_state_reasons_count(self) -> int:
+        """Get the count of unique reasons for the selected state."""
+        return len(self.state_reasons)
+
+    @rx.var
+    def get_paginated_reasons(self) -> list[dict]:
+        """Get the current page of reasons."""
+        page = self.reasons_current_page
+        per_page = self.reasons_items_per_page
+        start_index = (page - 1) * per_page
+        end_index = start_index + per_page
+        return self.state_reasons[start_index:end_index]
+
+    @rx.var
+    def get_total_pages(self) -> int:
+        """Get the total number of pages."""
+        if self.total_reasons_count == 0:
+            return 1
+        count = self.total_reasons_count
+        per_page = self.reasons_items_per_page
+        return (count - 1) // per_page + 1
+
+    @rx.var
+    def has_previous_page(self) -> bool:
+        """Check if there's a previous page."""
+        return self.reasons_current_page > 1
+
+    @rx.var
+    def has_next_page(self) -> bool:
+        """Check if there's a next page."""
+        if self.total_reasons_count == 0:
+            return False
+        current_page = self.reasons_current_page
+        total_pages = (self.total_reasons_count - 1) // self.reasons_items_per_page + 1
+        return current_page < total_pages
+
+    def go_to_previous_page(self):
+        """Go to the previous page of reasons."""
+        if self.has_previous_page:
+            self.reasons_current_page -= 1
+
+    def go_to_next_page(self):
+        """Go to the next page of reasons."""
+        if self.has_next_page:
+            self.reasons_current_page += 1
+
+    def reset_pagination(self):
+        """Reset pagination to first page."""
+        self.reasons_current_page = 1

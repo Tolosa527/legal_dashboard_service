@@ -18,15 +18,9 @@ class SpainHosErrorRules(PoliceErrorRules):
         # Add more as needed from new validation errors
     ]
 
-    def is_expected_error(
-        self, error_reason: str, state: str
-    ) -> bool:
-        if (
-            state == "INVALID"
-            and any(
-                msg in error_reason
-                for msg in self.EXPECTED_INVALID_REASONS
-            )
+    def is_expected_error(self, error_reason: str, state: str) -> bool:
+        if state == "INVALID" and any(
+            msg in error_reason for msg in self.EXPECTED_INVALID_REASONS
         ):
             return True
         return False
@@ -42,15 +36,9 @@ class SpainMosErrorRules(PoliceErrorRules):
         # Add more as needed from new validation errors
     ]
 
-    def is_expected_error(
-        self, error_reason: str, state: str
-    ) -> bool:
-        if (
-            state in ["ERROR", "INVALID"]
-            and any(
-                msg in error_reason
-                for msg in self.EXPECTED_INVALID_REASONS
-            )
+    def is_expected_error(self, error_reason: str, state: str) -> bool:
+        if state in ["ERROR", "INVALID"] and any(
+            msg in error_reason for msg in self.EXPECTED_INVALID_REASONS
         ):
             return True
         return False
@@ -63,15 +51,9 @@ class ItalyIspErrorRules(PoliceErrorRules):
         # Add more as needed from new validation errors
     ]
 
-    def is_expected_error(
-        self, error_reason: str, state: str
-    ) -> bool:
-        if (
-            state in ["ERROR", "INVALID"]
-            and any(
-                msg in error_reason
-                for msg in self.EXPECTED_INVALID_REASONS
-            )
+    def is_expected_error(self, error_reason: str, state: str) -> bool:
+        if state in ["ERROR", "INVALID"] and any(
+            msg in error_reason for msg in self.EXPECTED_INVALID_REASONS
         ):
             return True
         return False
@@ -82,15 +64,9 @@ class NatErrorRules(PoliceErrorRules):
         "exp_date field is required!",
     ]
 
-    def is_expected_error(
-        self, error_reason: str, state: str
-    ) -> bool:
-        if (
-            state in ["ERROR", "INVALID"]
-            and any(
-                msg in error_reason
-                for msg in self.EXPECTED_INVALID_REASONS
-            )
+    def is_expected_error(self, error_reason: str, state: str) -> bool:
+        if state in ["ERROR", "INVALID"] and any(
+            msg in error_reason for msg in self.EXPECTED_INVALID_REASONS
         ):
             return True
         return False
@@ -101,15 +77,9 @@ class PortugalSEFErrorRules(PoliceErrorRules):
         "validation errors",
     ]
 
-    def is_expected_error(
-        self, error_reason: str, state: str
-    ) -> bool:
-        if (
-            state in ["ERROR", "INVALID", "CANCELED"]
-            and any(
-                msg in error_reason
-                for msg in self.EXPECTED_INVALID_REASONS
-            )
+    def is_expected_error(self, error_reason: str, state: str) -> bool:
+        if state in ["ERROR", "INVALID", "CANCELED"] and any(
+            msg in error_reason for msg in self.EXPECTED_INVALID_REASONS
         ):
             return True
         return False
@@ -120,15 +90,9 @@ class DubaiDTCMErrorRules(PoliceErrorRules):
         "not active in DTCM",
     ]
 
-    def is_expected_error(
-        self, error_reason: str, state: str
-    ) -> bool:
-        if (
-            state in ["ERROR", "INVALID"]
-            and any(
-                msg in error_reason
-                for msg in self.EXPECTED_INVALID_REASONS
-            )
+    def is_expected_error(self, error_reason: str, state: str) -> bool:
+        if state in ["ERROR", "INVALID"] and any(
+            msg in error_reason for msg in self.EXPECTED_INVALID_REASONS
         ):
             return True
         return False

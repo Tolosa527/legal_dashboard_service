@@ -1,8 +1,8 @@
 import reflex as rx
 
 
-def status_card(type_data) -> rx.Component:
-    """Individual status card component for police type status."""
+def status_card(type_data, route_prefix="police-type") -> rx.Component:
+    """Individual status card component for police/statistics type status."""
     return rx.link(
         rx.card(
             rx.vstack(
@@ -158,16 +158,20 @@ def status_card(type_data) -> rx.Component:
             },
             transition="all 0.2s ease-in-out",
         ),
-        href=f"/police-type/{type_data['type']}",
+        href=f"/{route_prefix}/{type_data['type']}",
         style={"text_decoration": "none", "color": "inherit"},
     )
 
 
-def status_overview_section(get_police_type_status) -> rx.Component:
+def status_overview_section(
+    get_police_type_status,
+    route_prefix="police-type",
+    section_title="Service Status by Police Type",
+) -> rx.Component:
     """Service status overview section component."""
     return rx.vstack(
         rx.hstack(
-            rx.heading("Service Status by Police Type", size="5", color="gray.800"),
+            rx.heading(section_title, size="5", color="gray.800"),
             rx.badge(
                 rx.icon("activity", size=16),
                 "Live Status",
@@ -183,7 +187,7 @@ def status_overview_section(get_police_type_status) -> rx.Component:
         rx.grid(
             rx.foreach(
                 get_police_type_status,
-                status_card,
+                lambda type_data: status_card(type_data, route_prefix),
             ),
             columns=rx.breakpoints(initial="1", sm="2", lg="4"),
             spacing="4",
