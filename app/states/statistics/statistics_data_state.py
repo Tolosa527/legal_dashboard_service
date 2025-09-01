@@ -111,65 +111,84 @@ class StatisticsDataState(rx.State):
                 self.loading = False
 
     async def _get_statistics_type_statistics(
-        self, service: StatsDataMongoService
+        self, service: StatDataMongoService
     ) -> Dict[str, StatisticsTypeStatusResult]:
         """Get aggregated statistics by statistics type."""
-        # Get aggregated data by statistics type and state
         collection = service._get_collection()
         success_states = SUCCESS_STATES
         error_states = ERROR_STATES
-        # Simplified aggregation pipeline for statistics type statistics
         pipeline = [
             {
-                "$group": {
-                    "_id": "$stat_type",
-                    "status_check_in": {
-                        "$push": {
-                            "state": {"$ifNull": ["$status_check_in", "Unknown"]},
-                            "count": 1
-                        }
+                "$project": {
+                    "stat_type": 1,
+                    "registrations": {
+                        "$concatArrays": [
+                            [{"state": "$status_check_in"}],
+                            [{"state": "$status_check_out"}],
+                        ]
                     },
-                    "status_check_out": {
-                        "$push": {
-                            "state": {"$ifNull": ["$status_check_out", "Unknown"]},
-                            "count": 1
-                        }
-                    },
-                    "docs": {
-                        "$push": {
-                            "status_check_in": {"$ifNull": ["$status_check_in", "Unknown"]},
-                            "status_check_out": {"$ifNull": ["$status_check_out", "Unknown"]},
-                            "status_check_in_details": {"$ifNull": ["$status_check_in_details", "Unknown"]},
-                            "status_check_out_details": {"$ifNull": ["$status_check_out_details", "Unknown"]}
-                        }
-                    },
-                    "total": {"$sum": 1},
                 }
-            }
+            },
+            {"$unwind": "$registrations"},
+            {
+                "$group": {
+                    "_id": {
+                        "stat_type": "$stat_type",
+                        "state": "$registrations.state",
+                    },
+                    "count": {"$sum": 1},
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$_id.stat_type",
+                    "total": {"$sum": "$count"},
+                    "states": {
+                        "$push": {"state": "$_id.state", "count": "$count"}
+                    },
+                }
+            },
+            {"$sort": {"total": -1}},
         ]
+
+        from collections import Counter
         result = list(collection.aggregate(pipeline))
-        # Process the aggregated data
-        statistics_type_stats = {}
+        # Process the aggregated data into expected structures
+        police_type_stats = {}
         for item in result:
-            statistics_type = item["_id"]
-            total_records = item["total"]
-            # Aggregate state counts properly
-            state_counter: Counter = Counter()
-            for state_info in (
-                item["status_check_in"] + item["status_check_out"]
-            ):
-                state = state_info["state"]
-                count = state_info["count"]
-                state_counter[state] += count
+            stat_type = item["_id"]
+            total_records = item.get("total", 0)
+            # item["states"] is already an array of {state, count}
+            state_counter = Counter(
+                {s["state"]: s["count"] for s in item.get("states", [])}
+            )
             states = dict(state_counter)
             success_count = sum(
                 count for state, count in states.items()
                 if state in success_states
             )
+            try:
+                sample_docs = list(
+                    collection.find(
+                        {"stat_type": stat_type},
+                        {
+                            "status_check_in": 1,
+                            "status_check_out": 1,
+                            "status_check_in_details": 1,
+                            "status_check_out_details": 1,
+                        },
+                    )
+                )
+            except Exception:
+                # If fetching sample documents fails for any reason, fall
+                # back to an empty list so we don't crash the dashboard.
+                sample_docs = []
+
             success_rate = calculate_stat_success_rate(
                 success_count=success_count,
                 error_states=error_states,
-                docs=item.get("docs", []),
+                docs=sample_docs,
+                stat_type=stat_type,
             )
             # Determine status
             if success_rate >= SUCCESS_RATE_THRESHOLDS.good:
@@ -185,8 +204,8 @@ class StatisticsDataState(rx.State):
                 color = STATUS_COLORS.error
                 icon = STATUS_ICONS.error
 
-            statistics_type_stats[statistics_type] = StatisticsTypeStatusResult(
-                stat_type=statistics_type,
+            police_type_stats[stat_type] = StatisticsTypeStatusResult(
+                stat_type=stat_type,
                 total_records=total_records,
                 success_rate=round(success_rate, 1),
                 status=status,
@@ -196,7 +215,7 @@ class StatisticsDataState(rx.State):
                 states=states,
             )
 
-        return statistics_type_stats
+        return police_type_stats
 
     @rx.event(background=True)
     async def fetch_statistics_data(self):

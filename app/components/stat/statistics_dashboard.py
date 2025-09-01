@@ -1,9 +1,9 @@
 import reflex as rx
-from .sidebar import sidebar
-from .header import dashboard_header
-from .loading_error import loading_component, error_component
-from .status_cards import status_overview_section
-from .stats_cards import stats_cards_section
+from app.components.loading_error import loading_component, error_component
+from app.components.status_cards import status_overview_section
+from app.components.stats_cards import stats_cards_section
+from app.components.sidebar import sidebar
+from app.components.stat.stat_header import dashboard_header
 from app.states.statistics.statistics_data_state import StatisticsDataState
 
 

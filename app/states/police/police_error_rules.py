@@ -1,9 +1,5 @@
-from typing import Any, Dict
-
-
-# --- Error Rules Mechanism ---
 class PoliceErrorRules:
-    def is_expected_error(self, error_reason: str, state: str, doc: Dict[str, Any]) -> bool:
+    def is_expected_error(self, error_reason: str, state: str) -> bool:
         """Override in subclasses to define expected errors for each police type."""
         return False
 
@@ -23,7 +19,7 @@ class SpainHosErrorRules(PoliceErrorRules):
     ]
 
     def is_expected_error(
-        self, error_reason: str, state: str, doc: Dict[str, Any]
+        self, error_reason: str, state: str
     ) -> bool:
         if (
             state == "INVALID"
@@ -47,7 +43,7 @@ class SpainMosErrorRules(PoliceErrorRules):
     ]
 
     def is_expected_error(
-        self, error_reason: str, state: str, doc: Dict[str, Any]
+        self, error_reason: str, state: str
     ) -> bool:
         if (
             state in ["ERROR", "INVALID"]
@@ -68,7 +64,7 @@ class ItalyIspErrorRules(PoliceErrorRules):
     ]
 
     def is_expected_error(
-        self, error_reason: str, state: str, doc: Dict[str, Any]
+        self, error_reason: str, state: str
     ) -> bool:
         if (
             state in ["ERROR", "INVALID"]

@@ -31,7 +31,7 @@ def analyze_police_errors(
         if (
             state in error_states
             and not rules.is_expected_error(
-                error_reason=reason, state=state, doc=doc)
+                error_reason=reason, state=state)
         ):
             filtered.append(doc)
     return filtered

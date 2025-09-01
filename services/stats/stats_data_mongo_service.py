@@ -62,7 +62,9 @@ class StatDataMongoService:
         for d in status_result_check_out + status_result_check_in:
             result[d["_id"]] += d["count"]
 
-        status_distribution = [{k: v} for k, v in result.items()]
+        # Return a mapping of state -> count (not a list) so callers can
+        # use .items()
+        status_distribution = dict(result)
 
         type_pipeline = [
             {"$group": {"_id": "$stat_type", "count": {"$sum": 1}}},
@@ -70,12 +72,15 @@ class StatDataMongoService:
         ]
 
         type_results = list(collection.aggregate(type_pipeline))
-        status_type_distribution = {
+        statistics_type_distribution = {
             item["_id"]: item["count"] for item in type_results
         }
 
+        # Provide both the new key and the legacy key to avoid breaking
+        # other modules
         return {
             "total_records": total_count,
             "state_distribution": status_distribution,
-            "stat_type_distribution": status_type_distribution
+            "statistics_type_distribution": statistics_type_distribution,
+            "stat_type_distribution": statistics_type_distribution,
         }
