@@ -3,7 +3,10 @@ from app.states.police.police_error_rules import (
     PoliceErrorRules,
     SpainHosErrorRules,
     SpainMosErrorRules,
-    ItalyIspErrorRules
+    ItalyIspErrorRules,
+    NatErrorRules,
+    PortugalSEFErrorRules,
+    DubaiDTCMErrorRules
 )
 
 
@@ -12,9 +15,14 @@ def get_error_rules_for_police_type(police_type: str) -> PoliceErrorRules:
         return SpainHosErrorRules()
     elif police_type == "MOS":
         return SpainMosErrorRules()
-    # Add more police types here
     elif police_type == "ISP":
         return ItalyIspErrorRules()
+    elif police_type == "NAT":
+        return NatErrorRules()
+    elif police_type == "PORTUGAL_SEF":
+        return PortugalSEFErrorRules()
+    elif police_type == "DUBAI_DTCM":
+        return DubaiDTCMErrorRules()
     return PoliceErrorRules()
 
 

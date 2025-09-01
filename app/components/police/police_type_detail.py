@@ -28,7 +28,11 @@ def police_type_detail_header() -> rx.Component:
                     ),
                     rx.text("/", size="2", color="gray.400"),
                     rx.text(
-                        PoliceDataState.selected_police_type,
+                        rx.cond(
+                            PoliceDataState.selected_police_type,
+                            PoliceDataState.selected_police_type,
+                            PoliceDataState.get_current_police_type_from_url
+                        ),
                         size="2",
                         color="gray.600",
                         weight="medium",
@@ -40,7 +44,14 @@ def police_type_detail_header() -> rx.Component:
                 # Page title
                 rx.hstack(
                     rx.heading(
-                        rx.text("Police Type: ", PoliceDataState.selected_police_type),
+                        rx.text(
+                            "Police Type: ",
+                            rx.cond(
+                                PoliceDataState.selected_police_type,
+                                PoliceDataState.selected_police_type,
+                                PoliceDataState.get_current_police_type_from_url
+                            )
+                        ),
                         size="7",
                         color="gray.800",
                         weight="bold",
@@ -225,31 +236,95 @@ def police_type_recent_records() -> rx.Component:
                 align="center",
             ),
             rx.divider(),
-            rx.box(
+            rx.cond(
+                PoliceDataState.get_police_type_recent_records,
+                # Table with actual data from state
                 rx.vstack(
-                    rx.icon("database", size=48, color="gray.400"),
-                    rx.text(
-                        "Recent records will be displayed here",
-                        size="4",
-                        color="gray.600",
-                        weight="medium",
-                        text_align="center",
+                    rx.table.root(
+                        rx.table.header(
+                            rx.table.row(
+                                rx.table.column_header_cell(
+                                    "STATE",
+                                    weight="medium"
+                                ),
+                                rx.table.column_header_cell(
+                                    "REASON",
+                                    weight="medium"
+                                ),
+                            ),
+                        ),
+                        rx.table.body(
+                            rx.foreach(
+                                PoliceDataState.get_police_type_recent_records,
+                                lambda record, i: rx.table.row(
+                                    rx.table.cell(
+                                        rx.badge(
+                                            record["state"],
+                                            size="2",
+                                            variant="surface",
+                                            color_scheme=rx.cond(
+                                                (record["state"] == "SUCCESS") |
+                                                (record["state"] == "CONFIRMED") |
+                                                (record["state"] == "COMPLETE"),
+                                                "green",
+                                                rx.cond(
+                                                    (record["state"] == "NEW") |
+                                                    (record["state"] == "IN_PROGRESS") |
+                                                    (record["state"] == "PROGRESS"),
+                                                    "blue",
+                                                    "red"
+                                                )
+                                            ),
+                                        )
+                                    ),
+                                    rx.table.cell(
+                                        record.get("reason", "N/A"),
+                                        text_align="left"
+                                    ),
+                                ),
+                            ),
+                        ),
+                        width="100%",
+                        border="1px solid var(--gray-200)",
+                        border_radius="lg",
+                        overflow="hidden",
                     ),
                     rx.text(
-                        "This section will show the latest police records for this type with their status and details.",
+                        "Showing the 10 most recent records",
                         size="2",
                         color="gray.500",
-                        text_align="center",
-                        max_width="400px",
+                        align="right",
+                        padding_top="2",
                     ),
-                    spacing="3",
-                    align="center",
+                    width="100%",
                 ),
-                padding="3rem",
-                background="gray.50",
-                border_radius="lg",
-                border="2px dashed var(--gray-300)",
-                width="100%",
+                # Placeholder when no data is available
+                rx.box(
+                    rx.vstack(
+                        rx.icon("database", size=48, color="gray.400"),
+                        rx.text(
+                            "No recent records available",
+                            size="4",
+                            color="gray.600",
+                            weight="medium",
+                            text_align="center",
+                        ),
+                        rx.text(
+                            "No records found for this police type.",
+                            size="2",
+                            color="gray.500",
+                            text_align="center",
+                            max_width="400px",
+                        ),
+                        spacing="3",
+                        align="center",
+                    ),
+                    padding="3rem",
+                    background="gray.50",
+                    border_radius="lg",
+                    border="2px dashed var(--gray-300)",
+                    width="100%",
+                ),
             ),
             spacing="4",
             align="start",
@@ -259,7 +334,10 @@ def police_type_recent_records() -> rx.Component:
         background="white",
         border="1px solid var(--gray-200)",
         border_radius="xl",
-        box_shadow="0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        box_shadow=(
+            "0 4px 6px -1px rgba(0, 0, 0, 0.1), "
+            "0 2px 4px -1px rgba(0, 0, 0, 0.06)"
+        ),
         min_height="400px",
     )
 
@@ -290,5 +368,8 @@ def police_type_detail_page() -> rx.Component:
         ),
         width="100%",
         min_height="100vh",
-        background="linear-gradient(180deg, rgba(241, 245, 249, 0.8) 0%, rgba(248, 250, 252, 0.95) 20%, rgba(255, 255, 255, 0.98) 100%)",
+        background=(
+            "linear-gradient(180deg, rgba(241, 245, 249, 0.8) 0%, "
+            "rgba(248, 250, 252, 0.95) 20%, rgba(255, 255, 255, 0.98) 100%)"
+        ),
     )

@@ -7,7 +7,6 @@ from typing import Dict, Any
 from settings import settings
 from dataclasses import dataclass, field
 from app.states.police.config import (
-    IN_PROGRESS_STATES,
     SUCCESS_STATES,
     ERROR_STATES,
     SUCCESS_RATE_THRESHOLDS,
@@ -20,6 +19,8 @@ from app.states.police.config import (
 from logging import Logger
 
 logger = Logger(__name__)
+
+LIMIT_OF_DETAIL = 10
 
 
 @dataclass
@@ -141,7 +142,7 @@ class PoliceDataState(rx.State):
             police_type = item["_id"]
             total_records = item["total"]
             # Aggregate state counts properly
-            state_counter = Counter()
+            state_counter: Counter[str] = Counter()
             for state_info in item["states"]:
                 state = state_info["state"]
                 count = state_info["count"]
@@ -197,6 +198,17 @@ class PoliceDataState(rx.State):
         self.selected_police_type = police_type
 
     @rx.var
+    def get_current_police_type_from_url(self) -> str:
+        """Get police type from URL path."""
+        try:
+            path = self.router.url.path
+            if "/police-type/" in path:
+                return path.split("/police-type/")[-1]
+            return "Unknown"
+        except Exception:
+            return "Unknown"
+
+    @rx.var
     def get_police_data(self) -> list[dict]:
         """Return empty list - use specific statistics methods instead."""
         return []
@@ -240,34 +252,26 @@ class PoliceDataState(rx.State):
 
     @rx.var
     def get_success_rate(self) -> float:
-        """Get success rate percentage."""
-        if (
-            not self.stats_cache or
-            "state_distribution" not in self.stats_cache
-        ):
+        """Get success rate percentage with expected error filtering."""
+        if not self.police_type_data:
             return 0.0
 
-        state_dist = self.stats_cache["state_distribution"]
+        # Calculate weighted average of success rates from individual
+        # police types which already have error filtering applied
+        total_records = 0
+        weighted_success = 0.0
 
-        # Define states that should be excluded from success rate calculation
-        in_progress_states = IN_PROGRESS_STATES
-        success_states = SUCCESS_STATES
+        for police_data in self.police_type_data.values():
+            records = police_data.total_records
+            success_rate = police_data.success_rate
+            
+            total_records += records
+            weighted_success += (success_rate * records)
 
-        # Calculate totals
-        completed_count = sum(
-            count
-            for state, count in state_dist.items()
-            if state not in in_progress_states
-        )
-        success_count = sum(
-            count for state, count in state_dist.items()
-            if state in success_states
-        )
-
-        if completed_count == 0:
+        if total_records == 0:
             return 0.0
 
-        return round((success_count / completed_count) * 100, 1)
+        return round(weighted_success / total_records, 1)
 
     @rx.var
     def get_error_count(self) -> int:
@@ -378,21 +382,34 @@ class PoliceDataState(rx.State):
     @rx.var
     def get_police_type_detail_data(self) -> dict:
         """Get detailed data for the selected police type."""
-        if not self.police_type_data or not self.selected_police_type:
+        # Get police_type from URL params if selected_police_type is not set
+        police_type = self.selected_police_type
+        if not police_type:
+            try:
+                # Try to extract police_type from the URL path
+                path = self.router.url.path
+                if "/police-type/" in path:
+                    police_type = path.split("/police-type/")[-1]
+                else:
+                    police_type = ""
+            except Exception:
+                police_type = ""
+        
+        if not self.police_type_data or not police_type:
             return {}
 
-        if self.selected_police_type not in self.police_type_data:
+        if police_type not in self.police_type_data:
             return {
-                "type": self.selected_police_type,
+                "type": police_type,
                 "total_records": 0,
                 "success_records": 0,
                 "success_rate": 0.0,
                 "status": "Unknown",
             }
 
-        data = self.police_type_data[self.selected_police_type]
+        data = self.police_type_data[police_type]
         return {
-            "type": self.selected_police_type,
+            "type": police_type,
             "total_records": data.total_records,
             "success_records": data.success_records,
             "success_rate": data.success_rate,
@@ -401,10 +418,40 @@ class PoliceDataState(rx.State):
 
     @rx.var
     def get_police_type_recent_records(self) -> list[dict]:
-        """
-        Get recent records for the selected police type - now returns empty for
-        performance.
-        """
-        # For performance, we no longer load individual records
-        # This could be implemented as a separate on-demand fetch if needed
-        return []
+        """Get recent records (state and reason) for selected police type."""
+        # Get police_type from URL params if selected_police_type is not set
+        police_type = self.selected_police_type
+        if not police_type:
+            try:
+                # Try to extract police_type from the URL path
+                path = self.router.url.path
+                if "/police-type/" in path:
+                    police_type = path.split("/police-type/")[-1]
+                else:
+                    police_type = ""
+            except Exception:
+                police_type = ""
+        if not police_type:
+            return []
+
+        # Use the DB manager to get records for the selected police type
+        try:
+            # Create a new database connection
+            db_manager = DatabaseManager.get_instance()
+            mongo_db = db_manager.connect_mongo(
+                connection_string=settings.get_mongo_connection_string(),
+                database=settings.get_mongo_database(),
+            )
+            collection = mongo_db["police_data"]
+            # Exclude documents with state "NEW"
+            records = list(collection.find(
+                {
+                    "police_type": police_type,
+                    "state": {"$nin": ["NEW", "SCHEDULED", "CANCELED"]}
+                },
+                {"state": 1, "reason": 1, "created_at": 1, "_id": 0}
+            ).sort("created_at", -1).limit(LIMIT_OF_DETAIL))
+            return records
+        except Exception as e:
+            logger.error(f"Error fetching recent records: {str(e)}")
+            return []

@@ -75,3 +75,60 @@ class ItalyIspErrorRules(PoliceErrorRules):
         ):
             return True
         return False
+
+
+class NatErrorRules(PoliceErrorRules):
+    EXPECTED_INVALID_REASONS = [
+        "exp_date field is required!",
+    ]
+
+    def is_expected_error(
+        self, error_reason: str, state: str
+    ) -> bool:
+        if (
+            state in ["ERROR", "INVALID"]
+            and any(
+                msg in error_reason
+                for msg in self.EXPECTED_INVALID_REASONS
+            )
+        ):
+            return True
+        return False
+
+
+class PortugalSEFErrorRules(PoliceErrorRules):
+    EXPECTED_INVALID_REASONS = [
+        "validation errors",
+    ]
+
+    def is_expected_error(
+        self, error_reason: str, state: str
+    ) -> bool:
+        if (
+            state in ["ERROR", "INVALID", "CANCELED"]
+            and any(
+                msg in error_reason
+                for msg in self.EXPECTED_INVALID_REASONS
+            )
+        ):
+            return True
+        return False
+
+
+class DubaiDTCMErrorRules(PoliceErrorRules):
+    EXPECTED_INVALID_REASONS = [
+        "not active in DTCM",
+    ]
+
+    def is_expected_error(
+        self, error_reason: str, state: str
+    ) -> bool:
+        if (
+            state in ["ERROR", "INVALID"]
+            and any(
+                msg in error_reason
+                for msg in self.EXPECTED_INVALID_REASONS
+            )
+        ):
+            return True
+        return False

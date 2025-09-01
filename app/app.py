@@ -1,9 +1,12 @@
+import logging
 import reflex as rx
 from app.components.police.police_dashboard import police_dashboard_page
 from app.components.stat.statistics_dashboard import statistics_dashboard_page
 from app.components.police.police_type_detail import police_type_detail_page
 from app.states.police.police_data_state import PoliceDataState
 from app.states.police.navigation_state import NavigationState
+
+logger = logging.getLogger(__name__)
 
 
 def index() -> rx.Component:
@@ -34,12 +37,11 @@ def statistics_dashboard() -> rx.Component:
 
 def police_type_detail(police_type: str = "") -> rx.Component:
     """Police type detail page."""
+    logger.debug(f"Rendering police_type_detail for police_type: {police_type}")
     return rx.box(
         police_type_detail_page(),
         on_mount=[
             PoliceDataState.fetch_dashboard_stats,
-            PoliceDataState.set_selected_police_type(police_type),
-            NavigationState.set_current_route("/police"),
         ],
         width="100%",
         background="linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",

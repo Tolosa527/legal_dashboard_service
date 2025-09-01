@@ -12,6 +12,18 @@ documents = [
             {"state": "INVALID", "reason": "Invalid name format. Name and first surname are required."}
         ]
     },
+    {
+        "_id": "PORTUGAL_SEF",
+        "states": [
+            {"state": "SUCCESS", "count": 1},
+            {"state": "INVALID", "count": 1}
+        ],
+        "total": 2,
+        "docs": [
+            {"state": "SUCCESS", "reason": "Confirmed"},
+            {"state": "INVALID", "reason": "validation errors"}
+        ]
+    },
 ]
 
 
@@ -23,6 +35,7 @@ def test_police_success_rate_calculation():
 
     expected_results = {
         "SPAIN_HOS": 100.0,  # 2 success / (2 success + 0 error) * 100 (error is expected)
+        "PORTUGAL_SEF": 100.0,  # 1 success / (1 success + 0 error) * 100 (error is expected)
     }
 
     for doc in documents:
