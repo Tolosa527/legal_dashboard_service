@@ -5,9 +5,7 @@
 ![Docker](https://img.shields.io/badge/docker-ready-blue)
 ![Python](https://img.shields.io/badge/python-3.10%2B-yellow)
 
-<p align="center">
-	<img src="https://user-images.githubusercontent.com/placeholder/dashboard-screenshot.png" alt="Dashboard Screenshot" width="600"/>
-</p>
+![Alt text](Screenshot.png)
 
 Welcome to the Legal Dashboard Service! 🚀
 
